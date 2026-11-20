@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "comment": "Marketing-name and Linux PCI-family tokens mapped to ROCm gfx architectures. Add a line for a new card instead of changing installer code; RGB_MOCAP_GPU_ARCH always overrides detection.",
+  "gfx1200": ["9060", "9050", "Navi 44", "Radeon AI PRO R9600"],
+  "gfx1201": ["9070", "Navi 48", "Radeon AI PRO R9700"],
+  "gfx1100": ["7900", "Navi 31", "W7900", "W7800 48GB"],
+  "gfx1101": ["7800", "7700", "Navi 32", "PRO V710"],
+  "gfx1102": ["7600", "7500", "Navi 33", "PRO W7700"],
+  "gfx1103": ["780M", "760M", "740M", "Radeon 7", "Radeon 6"],
+  "gfx1151": ["8060S", "8050S", "Strix Point", "Ryzen AI Max"],
+  "gfx1150": ["880M", "890M", "Ryzen AI 9"],
+  "gfx1030": ["6800", "Navi 21", "W6800"],
+  "gfx1031": ["6700", "Navi 22"],
+  "gfx1032": ["6600", "Navi 23"]
+}

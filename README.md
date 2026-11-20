@@ -77,9 +77,11 @@ remains usable; rerun `install.cmd` to retry the unavailable support. See
 [verification and repair](docs/USER_GUIDE.md#installation-verification-and-repair).
 
 **Linux (experimental):** ExMR, FlowHMR and GVHMR use separate Linux runtime
-profiles with AMD ROCm (HIP) PyTorch on Radeon GPUs. See
-[Linux setup and compatibility](docs/LINUX.md) for AMD ROCm and WSL 2/CUDA
-notes, system dependencies, and optional feature support.
+profiles. Setup auto-detects the GPU and installs either CUDA (NVIDIA) or ROCm
+(HIP) PyTorch, including the matching per-architecture device kernels; the same
+selection works on Windows with AMD Radeon cards. See
+[Linux setup and compatibility](docs/LINUX.md) for ROCm/CUDA and WSL 2 notes,
+supported AMD architectures, system dependencies, and optional feature support.
 
 ### Optional model runtimes
 
@@ -219,7 +221,12 @@ motion quality was lower than **ExMR**. It does not support finger tracking.
 | [PromptHMR](https://github.com/yufu-wang/PromptHMR) | SMPL-X | Not generated | [PromptHMR guide](docs/models/PROMPTHMR.md) |
 | [GEM-X](https://github.com/NVlabs/GEM-X) · fast processing, relatively low motion quality in our tests | SOMA Native77 | Included | [GEM-X guide](docs/models/GEMX.md) |
 
-Requires 64-bit Windows, a compatible NVIDIA GPU/driver and OpenGL 4.3.
+Requires 64-bit Windows, OpenGL 4.3 and either a compatible NVIDIA GPU/driver
+or an AMD Radeon with a current Adrenalin driver providing HIP/ROCm. Setup
+detects the vendor and installs the matching pinned CUDA or ROCm PyTorch wheels;
+AMD gfx architecture detection and overrides are described in the
+[Linux and GPU setup guide](docs/LINUX.md#supported-amd-architectures), which
+also applies to Windows ROCm wheel selection.
 Model files are acquired separately; some require registration and license acceptance.
 
 **Installed models and runtimes:** approximately **77.8 GB (72.5 GiB)** for the

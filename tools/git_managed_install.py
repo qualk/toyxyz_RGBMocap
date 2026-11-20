@@ -38,6 +38,30 @@ def setup():
         pending=folder/'git-sync.pending';pending.write_text('Run install.cmd to complete or retry.\n',encoding='utf8')
         frozen=source_snapshot()
         lock=prepared_lock(resources)
+        # Select GPU wheels from the detected vendor/architecture. The checked-in
+        # locks hold CUDA wheels; ROCm wheels (including device kernel packages)
+        # are fetched and pinned for this exact platform and gfx architecture.
+        from mocap.gpu_detect import detect
+        from installer.gpu_setup import apply_backend
+        gpu=detect()
+        marker=folder/'gpu-backend.json'
+        selection=None
+        if marker.is_file() and not os.environ.get('RGB_MOCAP_GPU_BACKEND') and not os.environ.get('RGB_MOCAP_GPU_ARCH'):
+            try:selection=json.loads(marker.read_text(encoding='utf8'))
+            except (OSError,ValueError):selection=None
+        backend=(selection or {}).get('backend') or gpu['backend']
+        arch=(selection or {}).get('arch') or gpu['arch']
+        if backend not in ('cuda','rocm'):
+            raise RuntimeError('Could not determine the GPU backend. Set RGB_MOCAP_GPU_BACKEND=cuda or rocm and rerun Setup.')
+        print('GPU: %s | backend %s | arch %s' % (gpu['name'] or 'unknown', backend, arch or 'auto'),flush=True)
+        if backend=='rocm':
+            if not arch:
+                raise RuntimeError('Could not determine the AMD gfx architecture. Set RGB_MOCAP_GPU_ARCH=gfxNNNN and rerun Setup.')
+            platform_key='windows' if os.name=='nt' else 'linux'
+            python_versions=sorted({g['python'] for g in lock['groups']})
+            lock=apply_backend(lock,platform_key,arch,python_versions,folder/'downloads')
+            lock['id']=hashlib.sha256(json.dumps({k:v for k,v in lock.items() if k!='id'},sort_keys=True).encode()).hexdigest()
+        atomic(marker,dict(backend=backend,arch=arch,name=gpu['name'],vendor=gpu['vendor']))
         for origin,name in [(ROOT/'installer/engine.py','engine.py'),(ROOT/'installer/verify_runtime.py','verify_runtime.py'),(ROOT/'mocap/runtime_registry.py','runtime_registry.py')]:
             shutil.copy2(origin,resources/name)
         spec=importlib.util.spec_from_file_location('git_setup_engine',resources/'engine.py');engine=importlib.util.module_from_spec(spec);spec.loader.exec_module(engine)

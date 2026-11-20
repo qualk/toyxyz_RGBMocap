@@ -2244,6 +2244,8 @@
   "uv_sha256": "4075a09490327d2bedfacc807fa48252fb93647c5bd7ef28f00e579160ea3fb5",
   "all_runtimes": true,
   "models_included": false,
-  "registry_sha256": "0447a1291a0031ff76a2e87e0ababccb15fefe9bc9ce99f1b5073e43a0487127",
-  "id": "126eea66641380cbb28c76916a7a68055d0e6d3a49761fb2cc33d2d5b739e018"
+  "registry_sha256": "8e2ab2bcd7eb7afdf4bef09cbfecfe6d4f029a9fb09aadc6f7e3cce25457f409",
+  "id": "18d4b11da2c08e3834903f7721c9a925957496a3e2a8807ab60e6cb87df07c1d",
+  "gpu_backend": "cuda",
+  "gpu_selection": "installer/gpu_setup.py"
 }

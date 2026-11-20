@@ -1,23 +1,25 @@
 # Linux (experimental)
 
 The Linux installer uses the same pinned runtime profiles as Windows with
-separate hash-checked Linux wheels. Linux GPU inference uses AMD ROCm (HIP)
-PyTorch; Windows keeps its validated CUDA PyTorch. Both platforms keep their own Python
-runtimes, models, projects and caches. Try the AppImage below or install from the `linux_support` branch
-in a dedicated checkout on the Linux filesystem. The Linux paths cover single-video ExMR,
-FlowHMR and GVHMR, native motion correction, source export and optional Track
-Face. The optional PEAR, MAMMA, PromptHMR, GEM-X, SAM 3.1 and Unreal Live Link
-sender setups use Windows tooling.
+separate hash-checked Linux wheels. Both platforms auto-detect the GPU: NVIDIA
+uses the validated CUDA PyTorch, AMD Radeon uses ROCm (HIP) PyTorch. The GPU
+wheel set is selected at setup time for the detected platform and gfx
+architecture, so no particular card is baked into the runtime lock. Both
+platforms keep their own Python runtimes, models, projects and caches. The
+Linux paths cover single-video ExMR, FlowHMR and GVHMR, native motion
+correction, source export and optional Track Face. The optional PEAR, MAMMA,
+PromptHMR, GEM-X, SAM 3.1 and Unreal Live Link sender setups use Windows tooling.
 
 ## Requirements
 
-Use x86-64 Linux with a compatible AMD Radeon GPU and its ROCm runtime (tested
-with a Radeon RX 9060 XT, gfx1200, ROCm 10.1 and the AMD `rocm10.1.0` PyTorch
-wheels), OpenGL 4.3 or newer, FFmpeg and FFprobe, and a C++17 compiler with
-CMake 3.24 or newer. The installer downloads its own pinned ROCm PyTorch,
-Triton, device-kernel and ROCm SDK wheels from AMD's verified wheel index; it
-does not use the system Python's PyTorch. **Help > Check System** reports the
-GPU, HIP version and an actual device matmul result. On
+Use x86-64 Linux with a CUDA-capable NVIDIA driver or an AMD Radeon GPU with a
+working ROCm/HIP userland (verified on a Radeon RX 9060 XT, `gfx1200`, ROCm 10.1
+/ HIP 7.16), OpenGL 4.3 or newer, FFmpeg and FFprobe, and a C++17 compiler with
+CMake 3.24 or newer. The installer fetches the exact pinned PyTorch, Triton,
+device-kernel and ROCm SDK wheels for the detected GPU from AMD's or PyTorch's
+verified wheel index and verifies their SHA-256; it does not use the system
+Python's PyTorch. **Help > Check System** reports the backend, GPU, HIP/CUDA
+version, device NMS and an actual device matmul result. On
 Ubuntu 24.04, including WSL 2 with WSLg, install the system libraries first:
 
 ```sh
@@ -117,12 +119,34 @@ RGB_MOCAP_SETUP_TEMP=/tmp/rgbmocap-setup ./install.sh
 ```
 
 Review both platform locks after changing the runtime registry or package
-pins. `tools/linux_lock.py` derives the Linux runtime lock from the Windows
-pins, substitutes the ROCm PyTorch/TorchVision pins from
-`mocap/runtime_registry.py`, adds the exact Linux-only ROCm device/Triton/SDK
-wheels and rebuilds the sdist-only `rocm_sdk` shim from
-`installer/runtime_sources/`. The checked-in lock targets `gfx1200` (RX 9060
-XT); for another AMD architecture, regenerate it with
-`RGB_MOCAP_ROCM_DEVICE=<arch> python3 tools/linux_lock.py --uv-sha256 <pin>`.
-Use `--gpu cuda` only for an experimental CUDA Linux lock; the default is
-`--gpu rocm`.
+pins. `tools/linux_lock.py` derives the Linux runtime lock from the Windows CUDA
+pins. When setup detects an AMD GPU, `installer/gpu_setup.py` replaces those GPU
+entries with the exact ROCm wheels for the detected platform, Python version and
+gfx architecture, including the per-architecture TorchVision NMS kernel package
+and ROCm SDK device libraries. Detection uses `rocminfo`/`lspci` on Linux and
+the GPU name on Windows; `installer/gpu-arches.json` maps card names to gfx
+architectures. Override with `RGB_MOCAP_GPU_BACKEND=cuda|rocm` and
+`RGB_MOCAP_GPU_ARCH=gfxNNNN` if detection cannot identify a card. All wheels
+are hashed before installation; the sdist-only `rocm_sdk` shim is rebuilt from
+`installer/runtime_sources/`.
+
+## Supported AMD architectures
+
+The wheel index is queried at setup, so any architecture AMD publishes matching
+`amd-torch-device-*`, `amd-torchvision-device-*` and `rocm-sdk-device-*`
+artifacts for can be selected. `installer/gpu-arches.json` currently maps the
+RDNA3/RDNA4 consumer names below; add a line for a new card rather than editing
+code:
+
+| Architecture | Example cards |
+| --- | --- |
+| `gfx1200` | Radeon RX 9060 XT / 9060 / 9050 |
+| `gfx1201` | Radeon RX 9070 XT / 9070 / 9070 GRE |
+| `gfx1100` | Radeon RX 7900 XTX / XT / GRE |
+| `gfx1101` | Radeon RX 7800 XT / 7700 XT |
+| `gfx1102` | Radeon RX 7600 / 7600 XT |
+| `gfx1150` / `gfx1151` | Ryzen AI 300 / AI Max integrated Radeon |
+
+Setup prints the detected backend and architecture and stores them in
+`.setup/gpu-backend.json`; later installs reuse that selection unless an
+environment override is given.

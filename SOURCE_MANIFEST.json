@@ -26,8 +26,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 17500,
-      "sha256": "db810a53f20d3d1dc2b64112cd37bdcd7b47df3338abc379b2920539fbb4ca47"
+      "bytes": 18033,
+      "sha256": "4ca5e1d9d3f1bee853edf86d1cd4177f215a8c65c59bc6ec7282feb60b7c1951"
     },
     {
       "path": "RGBMoCap.cmd",
@@ -161,8 +161,8 @@
     },
     {
       "path": "docs/AGENT_GUIDE.md",
-      "bytes": 101834,
-      "sha256": "b5963f8bd08770d65cdd930cc61b821ea32a01beb4bef92d3e84b423f8fd76b4"
+      "bytes": 101953,
+      "sha256": "0c4ca1b5fc19b4607ddc2d06309b5b3e4a4e19c9fcf61ab33c05aed5f9ba6922"
     },
     {
       "path": "docs/BUILD.md",
@@ -176,8 +176,8 @@
     },
     {
       "path": "docs/LINUX.md",
-      "bytes": 6392,
-      "sha256": "9e47d67346bef838dc8687590ef012242de289fe449ee67cf3ccae622a4ba65b"
+      "bytes": 7571,
+      "sha256": "b2882de5336e2c8235c9bd8817c1742c1dc0238af58e243b250ec7e490129542"
     },
     {
       "path": "docs/MAMMA.md",
@@ -206,18 +206,8 @@
     },
     {
       "path": "docs/VALIDATION.md",
-      "bytes": 176878,
-      "sha256": "c2012aac545294523bd0aa6e76fbd4f8456b4a43c4b9957e6b253d3760ea5729"
-    },
-    {
-      "path": "docs/VALIDATION.md",
-      "bytes": 176878,
-      "sha256": "c2012aac545294523bd0aa6e76fbd4f8456b4a43c4b9957e6b253d3760ea5729"
-    },
-    {
-      "path": "docs/VALIDATION.md",
-      "bytes": 176878,
-      "sha256": "c2012aac545294523bd0aa6e76fbd4f8456b4a43c4b9957e6b253d3760ea5729"
+      "bytes": 177232,
+      "sha256": "ea2e92472c601f78154c936a6f9038a645645dcc3a745ced50811ab3d703be20"
     },
     {
       "path": "docs/images/exmr-interaction-contact.png",
@@ -390,6 +380,16 @@
       "sha256": "fb9235fbddbd6dc61747b82d6a5ca24e9b983d3039bf913972936e4b2fe89e08"
     },
     {
+      "path": "installer/gpu-arches.json",
+      "bytes": 791,
+      "sha256": "a3555f0486e7235d818b7e8c86ebb50e7868a5297e2477a476f37d94e35473bd"
+    },
+    {
+      "path": "installer/gpu_setup.py",
+      "bytes": 10418,
+      "sha256": "d9c5fdc27a7a329c24935b95e24994214f9642316f63395e69a7b99573f5a8db"
+    },
+    {
       "path": "installer/licenses/antlr4-LICENSE.txt",
       "bytes": 2699,
       "sha256": "b1b379fcaf3219593a4c433feb1b35c780bed23fafaae440b1ae2771a9521e3a"
@@ -476,13 +476,13 @@
     },
     {
       "path": "installer/runtime-lock-linux.json",
-      "bytes": 129779,
-      "sha256": "b395b78ed14d8c9d68e1ca15855b51692e567c820bd3504f341282dbc10a0726"
+      "bytes": 137288,
+      "sha256": "c065cace3d2e94d3136a6402b7e7ad1aec3186bb5845cd0db2f88542989e6521"
     },
     {
       "path": "installer/runtime-lock.json",
-      "bytes": 117713,
-      "sha256": "32c41cbb187abedf5dd64126a1422add317ff7b031e9639887ec2555af41c892"
+      "bytes": 117785,
+      "sha256": "ab91861786565106c23737351df770c48ea1d7c57bce1ba4d58e29706419939e"
     },
     {
       "path": "installer/runtime_sources/antlr4_python3_runtime-4.9.3-py3-none-any/SOURCE_WHEEL.json",
@@ -1790,19 +1790,14 @@
       "sha256": "34a7ab8a9a650d7721c70762c4bf0bebd642e8ad9808dbba033d36b292334d99"
     },
     {
+      "path": "mocap/gpu_detect.py",
+      "bytes": 4708,
+      "sha256": "c3d41d0b409d41c5d8e18a13bdcdeea6390c08179f006015a373f0bb0a76364b"
+    },
+    {
       "path": "mocap/gpu_offload.py",
       "bytes": 3784,
       "sha256": "10ffb66c23b82aa9cc01dbb285222ce99b8bb10995258c877639ac2dd67e33ac"
-    },
-    {
-      "path": "mocap/gui.py",
-      "bytes": 131740,
-      "sha256": "919ff13376c2f31241b9af3ed29593144241cec1a0b4fc8ddbf2ccef6894310e"
-    },
-    {
-      "path": "mocap/gui.py",
-      "bytes": 131740,
-      "sha256": "919ff13376c2f31241b9af3ed29593144241cec1a0b4fc8ddbf2ccef6894310e"
     },
     {
       "path": "mocap/gui.py",
@@ -2431,8 +2426,8 @@
     },
     {
       "path": "mocap/runtime_registry.py",
-      "bytes": 6809,
-      "sha256": "0447a1291a0031ff76a2e87e0ababccb15fefe9bc9ce99f1b5073e43a0487127"
+      "bytes": 7568,
+      "sha256": "8e2ab2bcd7eb7afdf4bef09cbfecfe6d4f029a9fb09aadc6f7e3cce25457f409"
     },
     {
       "path": "mocap/sam31_discovery.py",
@@ -13431,8 +13426,8 @@
     },
     {
       "path": "tools/git_managed_install.py",
-      "bytes": 8276,
-      "sha256": "e15561ad754e78b71254ab43a2d3cd7a968ffcbc975fdb729929cc438ce1ff51"
+      "bytes": 10017,
+      "sha256": "862675262f3679acb3a5994db9c1f65536c06bc82201151fc1cdd28264a18e81"
     },
     {
       "path": "tools/git_transaction.py",
@@ -13451,8 +13446,8 @@
     },
     {
       "path": "tools/linux_lock.py",
-      "bytes": 14998,
-      "sha256": "7739a3f75e54faf9973909f26fae57f8034118268a92e2a973022a7bf7c25a15"
+      "bytes": 9966,
+      "sha256": "39cf4aa6a875bcc2c9745caaffbe71fa85737866a0ccb2e7b7ca91ccb6d2f7c2"
     },
     {
       "path": "tools/optional_support.py",

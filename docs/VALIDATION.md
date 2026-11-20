@@ -42,11 +42,15 @@ for Manny and Quinn, mixed MetaHuman face streaming and the UE 5.7.4 Win64 ZIP.
 - On an Ubuntu-based CachyOS x86-64 desktop with an Radeon RX 9060 XT
   (`gfx1200`), `rocminfo` and `hipconfig` reported a working ROCm 10.1 / HIP
   7.16 stack. The GPU appears as `amdgcn-amd-amdhsa--gfx1200`, 32 compute units.
-- `./install.sh` downloaded the pinned AMD ROCm PyTorch/TorchVision, Triton,
-  gfx1200 device and ROCm SDK wheels, rebuilt the sdist-only `rocm_sdk` shim,
-  and verified every runtime group including real device matmuls in the shared
-  and ExMR base runtimes. `./install.sh --verify-all` reused those verified
-  runtimes without reinstalling.
+- Setup now detects the GPU (`rocminfo`/`lspci` on Linux, GPU name on Windows),
+  selects the backend and gfx architecture, and injects the matching pinned
+  wheels into the lock before installation. On this machine it detected
+  `gfx1200` and installed the AMD ROCm PyTorch/TorchVision, Triton, device and
+  ROCm SDK wheels, rebuilt the sdist-only `rocm_sdk` shim, and verified every
+  runtime group including real device matmuls in the shared and ExMR base
+  runtimes. `./install.sh --verify-all` reused those verified runtimes without
+  reinstalling. The same wheel resolver produced complete sets for `gfx1100`
+  and for Windows `gfx1200`/`gfx1100` (hashes checked; not installed on Windows).
 - **Help > Check System** through the managed `diagnose` worker reported
   `gpu_backend=rocm`, `torch=2.14.0+rocm10.1.0`, HIP `7.16.26385`,
   `gpu=AMD Radeon RX 9060 XT`, `gpu_arch=gfx1200`, 15.9 GiB VRAM and

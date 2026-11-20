@@ -9,27 +9,35 @@ import os
 from pathlib import Path
 
 WINDOWS = os.name == 'nt'
-# Linux runs the GPU pipeline on AMD ROCm (HIP). PyTorch's ROCm builds expose the
-# same torch.cuda API as CUDA builds, so inference code needs no device rewrite;
-# only the wheel pins, version checks and hardware wording differ. Windows keeps
-# the validated CUDA pins unchanged.
-ROCM_TORCH = '2.14.0+rocm10.1.0'
+# CUDA and ROCm PyTorch expose the same torch.cuda API (HIP is the ROCm CUDA
+# shim), so inference code needs no device rewrite. Setup selects the backend
+# from the detected GPU and injects the matching wheels; workers accept either
+# pinned family because the exact installed version is verified from the lock.
+ROCM_TORCH = '2.14.0+rocm10.1.0'          # Linux
 ROCM_TORCHVISION = '0.29.0a0+rocm10.1.0'
+ROCM_WINDOWS_TORCH = '2.12.0+rocm10.1.0'
+ROCM_WINDOWS_TORCHVISION = '0.27.0+rocm10.1.0'
 CUDA_TORCH = '2.7.1+cu128'
 CUDA_TORCHVISION = '0.22.1+cu128'
 CUDA_EXMR_TORCH = '2.8.0+cu128'
 CUDA_EXMR_TORCHVISION = '0.23.0+cu128'
 
+TORCH_VERSIONS = frozenset({ROCM_TORCH, ROCM_WINDOWS_TORCH, CUDA_TORCH, CUDA_EXMR_TORCH})
+TORCHVISION_VERSIONS = frozenset({ROCM_TORCHVISION, ROCM_WINDOWS_TORCHVISION,
+                                  CUDA_TORCHVISION, CUDA_EXMR_TORCHVISION})
 
-def gpu_pins(rocm=None, exmr=False):
-    """Exact torch/torchvision pair for the requested (or current) GPU backend."""
-    rocm = (not WINDOWS) if rocm is None else rocm
-    if rocm: return (ROCM_TORCH, ROCM_TORCHVISION)
+
+def gpu_pins(rocm=None, exmr=False, platform=None):
+    """Default torch/torchvision pair for a backend; lock tools pass this explicitly."""
+    rocm = ((platform or ('windows' if WINDOWS else 'linux')) == 'linux') if rocm is None else rocm
+    if rocm:
+        return ((ROCM_WINDOWS_TORCH, ROCM_WINDOWS_TORCHVISION) if platform == 'windows'
+                else (ROCM_TORCH, ROCM_TORCHVISION))
     return ((CUDA_EXMR_TORCH, CUDA_EXMR_TORCHVISION) if exmr else (CUDA_TORCH, CUDA_TORCHVISION))
 
 
-TORCH, TORCHVISION = gpu_pins()
-TORCH_EXMR, TORCHVISION_EXMR = gpu_pins(exmr=True)
+TORCH, TORCHVISION = gpu_pins(rocm=False)
+TORCH_EXMR, TORCHVISION_EXMR = gpu_pins(rocm=False, exmr=True)
 
 PROFILES = {
     'shared': dict(folder='runtime', dev='.venv', base=None, python='3.10.22', packages={'torch':TORCH,'numpy':'1.23.5','scipy':'1.14.1','timm':'0.9.12'}),
@@ -112,7 +120,9 @@ def activate(root,key,base_root=None):
     paths={}
     for name,version in spec['packages'].items():
         dist=metadata.distribution(name);module=importlib.util.find_spec(name)
-        if dist.version!=version or module is None or not module.origin:
+        accepted=(name=='torch' and dist.version in TORCH_VERSIONS) or \
+                 (name=='torchvision' and dist.version in TORCHVISION_VERSIONS)
+        if (dist.version!=version and not accepted) or module is None or not module.origin:
             raise RuntimeError('Incompatible '+name+' in '+key+'. Run Setup to repair it.')
         actual=Path(module.origin).resolve();expected=overlay if name in own else site
         if not actual.is_relative_to(expected.resolve()): raise RuntimeError('Unexpected '+name+' import path in '+key+': '+str(actual))
