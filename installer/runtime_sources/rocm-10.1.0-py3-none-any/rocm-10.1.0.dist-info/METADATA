@@ -1,0 +1,90 @@
+Metadata-Version: 2.4
+Name: rocm
+Version: 10.1.0
+Requires-Dist: rocm-sdk-core==10.1.0
+Provides-Extra: libraries
+Requires-Dist: rocm-sdk-libraries==10.1.0; extra == "libraries"
+Provides-Extra: device
+Requires-Dist: rocm-sdk-device-gfx1200==10.1.0; extra == "device"
+Provides-Extra: devel
+Requires-Dist: rocm-sdk-devel==10.1.0; extra == "devel"
+Provides-Extra: profiler
+Requires-Dist: rocm-profiler==10.1.0; extra == "profiler"
+Provides-Extra: device-gfx1010
+Requires-Dist: rocm-sdk-device-gfx1010==10.1.0; extra == "device-gfx1010"
+Provides-Extra: device-gfx1011
+Requires-Dist: rocm-sdk-device-gfx1011==10.1.0; extra == "device-gfx1011"
+Provides-Extra: device-gfx1012
+Requires-Dist: rocm-sdk-device-gfx1012==10.1.0; extra == "device-gfx1012"
+Provides-Extra: device-gfx1030
+Requires-Dist: rocm-sdk-device-gfx1030==10.1.0; extra == "device-gfx1030"
+Provides-Extra: device-gfx1031
+Requires-Dist: rocm-sdk-device-gfx1031==10.1.0; extra == "device-gfx1031"
+Provides-Extra: device-gfx1032
+Requires-Dist: rocm-sdk-device-gfx1032==10.1.0; extra == "device-gfx1032"
+Provides-Extra: device-gfx1033
+Requires-Dist: rocm-sdk-device-gfx1033==10.1.0; extra == "device-gfx1033"
+Provides-Extra: device-gfx1034
+Requires-Dist: rocm-sdk-device-gfx1034==10.1.0; extra == "device-gfx1034"
+Provides-Extra: device-gfx1035
+Requires-Dist: rocm-sdk-device-gfx1035==10.1.0; extra == "device-gfx1035"
+Provides-Extra: device-gfx1036
+Requires-Dist: rocm-sdk-device-gfx1036==10.1.0; extra == "device-gfx1036"
+Provides-Extra: device-gfx1100
+Requires-Dist: rocm-sdk-device-gfx1100==10.1.0; extra == "device-gfx1100"
+Provides-Extra: device-gfx1101
+Requires-Dist: rocm-sdk-device-gfx1101==10.1.0; extra == "device-gfx1101"
+Provides-Extra: device-gfx1102
+Requires-Dist: rocm-sdk-device-gfx1102==10.1.0; extra == "device-gfx1102"
+Provides-Extra: device-gfx1103
+Requires-Dist: rocm-sdk-device-gfx1103==10.1.0; extra == "device-gfx1103"
+Provides-Extra: device-gfx1150
+Requires-Dist: rocm-sdk-device-gfx1150==10.1.0; extra == "device-gfx1150"
+Provides-Extra: device-gfx1151
+Requires-Dist: rocm-sdk-device-gfx1151==10.1.0; extra == "device-gfx1151"
+Provides-Extra: device-gfx1152
+Requires-Dist: rocm-sdk-device-gfx1152==10.1.0; extra == "device-gfx1152"
+Provides-Extra: device-gfx1153
+Requires-Dist: rocm-sdk-device-gfx1153==10.1.0; extra == "device-gfx1153"
+Provides-Extra: device-gfx1200
+Requires-Dist: rocm-sdk-device-gfx1200==10.1.0; extra == "device-gfx1200"
+Provides-Extra: device-gfx1201
+Requires-Dist: rocm-sdk-device-gfx1201==10.1.0; extra == "device-gfx1201"
+Provides-Extra: device-gfx1250
+Requires-Dist: rocm-sdk-device-gfx1250==10.1.0; sys_platform == "linux" and extra == "device-gfx1250"
+Provides-Extra: device-gfx908
+Requires-Dist: rocm-sdk-device-gfx908==10.1.0; extra == "device-gfx908"
+Provides-Extra: device-gfx90a
+Requires-Dist: rocm-sdk-device-gfx90a==10.1.0; extra == "device-gfx90a"
+Provides-Extra: device-gfx942
+Requires-Dist: rocm-sdk-device-gfx942==10.1.0; sys_platform == "linux" and extra == "device-gfx942"
+Provides-Extra: device-gfx950
+Requires-Dist: rocm-sdk-device-gfx950==10.1.0; sys_platform == "linux" and extra == "device-gfx950"
+Provides-Extra: device-all
+Requires-Dist: rocm-sdk-device-gfx1010==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1011==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1012==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1030==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1031==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1032==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1033==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1034==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1035==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1036==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1100==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1101==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1102==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1103==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1150==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1151==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1152==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1153==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1200==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1201==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx1250==10.1.0; sys_platform == "linux" and extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx908==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx90a==10.1.0; extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx942==10.1.0; sys_platform == "linux" and extra == "device-all"
+Requires-Dist: rocm-sdk-device-gfx950==10.1.0; sys_platform == "linux" and extra == "device-all"
+Dynamic: provides-extra
+Dynamic: requires-dist

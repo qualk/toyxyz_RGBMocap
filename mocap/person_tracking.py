@@ -182,7 +182,7 @@ def discover(project, emit):
     manifest = json.loads((project/'project.json').read_text(encoding='utf-8'))
     from .cache_compat import discovery_identity
     digest = hashlib.sha256(json.dumps([media_receipt(project),str(torch.__version__),
-        torch.version.cuda,cv2.__version__,ultralytics.__version__,torch.cuda.get_device_name(),
+        torch.version.cuda or getattr(torch.version,'hip',None),cv2.__version__,ultralytics.__version__,torch.cuda.get_device_name(),
         discovery_identity(Path(__file__)),sha256(UPSTREAM/'OSNet/osnet.py'),
         *[sha256(BY_KEY[key].path) for key in ('yolo','person_reid')]]).encode()).hexdigest()
     try:old = load_people(project) if (project/'people.json').exists() else None

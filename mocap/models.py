@@ -230,6 +230,10 @@ def manual_instructions_html(key: str) -> str:
                       model.url + '/blob/' + SAM_REV + '/' + SAM_MANUAL_FILES[key]))
     details = MANUAL_DETAILS.get(key, {})
     body = '<p><b>File to import:</b> <code>' + escape(model.path.name) + '</code></p>'
+    body += ('<p><b>This app registers the file at:</b><br/><code>' + escape(str(model.path)) +
+        '</code></p><p>Download the file anywhere, then click <b>Import</b> in this row: the app checks '
+        'it and registers it there. Files that need provider registration (body and hand models, '
+        'FlowHMR, SAM and ExMR files) are only accepted through Import, even if copied into that folder.</p>')
     if details.get('selection'):
         body += '<p><b>Choose on the website:</b><br/>' + escape(details['selection']) + '</p>'
     body += '<p><b>Steps</b><br/>' + escape(instructions).replace('\n', '<br/>') + '</p>'

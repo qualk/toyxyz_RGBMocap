@@ -101,7 +101,7 @@ def validate_package(p):
     if Path(p['filename']).name!=p['filename'] or not p['filename'].endswith('.whl'):raise ValueError('Invalid wheel filename')
     if p.get('url'):
         u=urllib.parse.urlsplit(p['url'])
-        if u.scheme!='https' or u.hostname not in {'files.pythonhosted.org','download.pytorch.org','download-r2.pytorch.org'}:
+        if u.scheme!='https' or u.hostname not in {'files.pythonhosted.org','download.pytorch.org','download-r2.pytorch.org','stable.repo.amd.com'}:
             raise ValueError('Unapproved package source')
 
 def download(p,cache,cancel,completed,total):

@@ -42,7 +42,7 @@ def prepared_lock(work):
         wheel=work/name;wheel.parent.mkdir(parents=True,exist_ok=True)
         with zipfile.ZipFile(wheel,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
             for p in sorted(source.rglob('*')):
-                if not p.is_file() or p.name=='SOURCE_WHEEL.json':continue
+                if not p.is_file() or p.name=='SOURCE_WHEEL.json' or '__pycache__' in p.parts or p.suffix=='.pyc':continue
                 info=zipfile.ZipInfo(p.relative_to(source).as_posix(),date_time=(1980,1,1,0,0,0))
                 info.compress_type=zipfile.ZIP_DEFLATED;info.external_attr=0o644<<16
                 z.writestr(info,p.read_bytes())

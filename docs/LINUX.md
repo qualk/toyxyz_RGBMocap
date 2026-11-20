@@ -1,7 +1,8 @@
 # Linux (experimental)
 
 The Linux installer uses the same pinned runtime profiles as Windows with
-separate hash-checked Linux wheels. Both platforms keep their own Python
+separate hash-checked Linux wheels. Linux GPU inference uses AMD ROCm (HIP)
+PyTorch; Windows keeps its validated CUDA PyTorch. Both platforms keep their own Python
 runtimes, models, projects and caches. Try the AppImage below or install from the `linux_support` branch
 in a dedicated checkout on the Linux filesystem. The Linux paths cover single-video ExMR,
 FlowHMR and GVHMR, native motion correction, source export and optional Track
@@ -10,8 +11,13 @@ sender setups use Windows tooling.
 
 ## Requirements
 
-Use x86-64 Linux with a compatible NVIDIA driver for CUDA 12.8, OpenGL 4.3 or
-newer, FFmpeg and FFprobe, and a C++17 compiler with CMake 3.24 or newer. On
+Use x86-64 Linux with a compatible AMD Radeon GPU and its ROCm runtime (tested
+with a Radeon RX 9060 XT, gfx1200, ROCm 10.1 and the AMD `rocm10.1.0` PyTorch
+wheels), OpenGL 4.3 or newer, FFmpeg and FFprobe, and a C++17 compiler with
+CMake 3.24 or newer. The installer downloads its own pinned ROCm PyTorch,
+Triton, device-kernel and ROCm SDK wheels from AMD's verified wheel index; it
+does not use the system Python's PyTorch. **Help > Check System** reports the
+GPU, HIP version and an actual device matmul result. On
 Ubuntu 24.04, including WSL 2 with WSLg, install the system libraries first:
 
 ```sh
@@ -33,7 +39,9 @@ changes the pin, keep the current directory as a backup before requesting the
 new managed Blender.
 
 On WSL 2, use a checkout on the Linux filesystem, for example in your home
-directory, and use the NVIDIA Windows host driver. WSL exposes CUDA to Ubuntu.
+directory. The validated WSL setup uses the NVIDIA Windows host driver, which
+WSL exposes to Ubuntu. ROCm under WSL is not validated here; use native Linux
+for AMD GPUs.
 The launcher defaults to Qt's XCB backend when X11 or XWayland provides
 `DISPLAY`. An explicit `QT_QPA_PLATFORM` takes precedence. If the Qt viewport
 uses software rendering on an NVIDIA WSLg system, check
@@ -46,9 +54,11 @@ QT_QPA_PLATFORM=xcb GALLIUM_DRIVER=d3d12 MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA 
 ## Test the AppImage on Linux Mint
 
 Download the [x86-64 AppImage and its SHA-256 checksum][appimage-release].
-This experimental build was tested with CUDA on Ubuntu 24.04 under WSL 2.
-Native Linux Mint testing is welcome. Install the host dependencies listed
-above and run the AppImage from a terminal to see setup progress.
+This published experimental build was tested with CUDA on Ubuntu 24.04 under
+WSL 2 and predates the AMD ROCm runtime changes in this checkout; for an AMD
+GPU, install from source as described below. Native Linux Mint testing is
+welcome. Install the host dependencies listed above and run the AppImage from a
+terminal to see setup progress.
 
 ```sh
 sha256sum -c RGBMoCap-Linux-73bdd37b-x86_64.AppImage.sha256
@@ -108,4 +118,11 @@ RGB_MOCAP_SETUP_TEMP=/tmp/rgbmocap-setup ./install.sh
 
 Review both platform locks after changing the runtime registry or package
 pins. `tools/linux_lock.py` derives the Linux runtime lock from the Windows
-pins and adds exact versions for Linux-only requirements.
+pins, substitutes the ROCm PyTorch/TorchVision pins from
+`mocap/runtime_registry.py`, adds the exact Linux-only ROCm device/Triton/SDK
+wheels and rebuilds the sdist-only `rocm_sdk` shim from
+`installer/runtime_sources/`. The checked-in lock targets `gfx1200` (RX 9060
+XT); for another AMD architecture, regenerate it with
+`RGB_MOCAP_ROCM_DEVICE=<arch> python3 tools/linux_lock.py --uv-sha256 <pin>`.
+Use `--gpu cuda` only for an experimental CUDA Linux lock; the default is
+`--gpu rocm`.

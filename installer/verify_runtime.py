@@ -34,5 +34,22 @@ if group['key']=='gui':
     import PySide6
     from PySide6 import QtWidgets,QtOpenGLWidgets
     if PySide6.__version__!='6.8.3':raise RuntimeError('GUI Qt version mismatch')
+# The base runtimes carry the GPU stack; prove the installed wheels can actually
+# run on this machine instead of trusting imports or version strings alone.
+if group['key'] in {'shared', 'exmr'}:
+    if not torch.cuda.is_available():
+        raise RuntimeError('The installed GPU runtime found no CUDA/ROCm device.')
+    probe = torch.ones(64, 64, device='cuda')
+    if not (probe @ probe).sum().item() > 0:
+        raise RuntimeError('The installed GPU runtime failed a device matmul.')
+    try:
+        import torchvision
+        boxes = torch.tensor([[0., 0., 10., 10.], [1., 1., 11., 11.]], device='cuda')
+        scores = torch.tensor([0.9, 0.8], device='cuda')
+        torchvision.ops.nms(boxes, scores, 0.5)
+    except Exception as error:
+        raise RuntimeError('TorchVision device kernels are missing for this GPU: ' + str(error)[:200]) from error
+    report['gpu_backend'] = 'rocm' if getattr(torch.version, 'hip', None) else 'cuda'
+    report['gpu'] = torch.cuda.get_device_name(0)
 report.update(checked_files=checked,torch=torch.__version__,numpy=numpy.__version__,scipy=scipy.__version__)
 print(json.dumps(report))

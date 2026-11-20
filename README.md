@@ -73,8 +73,9 @@ remains usable; rerun `install.cmd` to retry the unavailable support. See
 [verification and repair](docs/USER_GUIDE.md#installation-verification-and-repair).
 
 **Linux (experimental):** ExMR, FlowHMR and GVHMR use separate Linux runtime
-profiles. See [Linux setup and compatibility](docs/LINUX.md) for WSL 2,
-system dependencies, and optional feature support.
+profiles with AMD ROCm (HIP) PyTorch on Radeon GPUs. See
+[Linux setup and compatibility](docs/LINUX.md) for AMD ROCm and WSL 2/CUDA
+notes, system dependencies, and optional feature support.
 
 ### Optional model runtimes
 

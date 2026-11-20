@@ -3,6 +3,7 @@
 .bootstrap/
 .runtime/
 .setup/
+/uv.lock
 /SETUP_RECEIPT.json
 .build-inputs/
 /build/

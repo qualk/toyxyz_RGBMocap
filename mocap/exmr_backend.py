@@ -164,7 +164,14 @@ def frame_dir(project,n):
         if json.loads((directory/'receipt.json').read_text(encoding='utf-8'))==identity and len(list(directory.glob('*.jpg')))==n:return directory
     except (OSError,ValueError):pass
     for path in directory.glob('*.jpg'):path.unlink()
-    subprocess.run([executable('ffmpeg'),'-v','error','-i',str(project/'input.mp4'),'-vsync','0','-q:v','2','-start_number','0','-threads','2','-y',str(directory/'%06d.jpg')],check=True,creationflags=NO_WINDOW)
+    # FFmpeg 7+ removed -vsync; older Windows builds do not know -fps_mode.
+    try:
+        help_text=subprocess.run([executable('ffmpeg'),'-hide_banner','-h','full'],capture_output=True,
+                                 text=True,timeout=10,creationflags=NO_WINDOW).stdout
+        passthrough='-fps_mode' in help_text
+    except (OSError,subprocess.SubprocessError):passthrough=False
+    timing=['-fps_mode','passthrough'] if passthrough else ['-vsync','0']
+    subprocess.run([executable('ffmpeg'),'-v','error','-i',str(project/'input.mp4'),*timing,'-q:v','2','-start_number','0','-threads','2','-y',str(directory/'%06d.jpg')],check=True,creationflags=NO_WINDOW)
     if len(list(directory.glob('*.jpg')))!=n:raise ValueError('ExMR frame count differs from project')
     atomic_json(directory/'receipt.json',identity)
     return directory
@@ -224,7 +231,7 @@ def run_stage(project,stage,result,emit,force=False,feature_phase=None):
     except (OSError,ValueError,KeyError,RuntimeError,EOFError):cached=False
     if cached:
         complete_stage(project,stage,project/outputs[0],old.get('elapsed',0),True,emit);return
-    if not torch.cuda.is_available():raise RuntimeError('ExMR requires a supported NVIDIA CUDA GPU. Check System in Help for details.')
+    if not torch.cuda.is_available():raise RuntimeError('ExMR requires a supported CUDA or ROCm GPU. Check System in Help for details.')
     started=time.monotonic()
     free,total=torch.cuda.mem_get_info();set_memory_budget(free,total)
     torch.set_num_threads(4);cv2.setNumThreads(2);torch.manual_seed(0);np.random.seed(0)

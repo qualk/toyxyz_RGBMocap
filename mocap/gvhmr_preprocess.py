@@ -32,7 +32,7 @@ def identity(project,batch):
     # Exact-byte aliases retain preprocessing after platform-only edits to these two files.
     aliased={Path(__file__),ROOT/'mocap/engines.py'}
     value=dict(version=1,precision='float32',flip=True,deterministic_conv=True,
-        batch=batch,torch=str(torch.__version__),cuda=torch.version.cuda,
+        batch=batch,torch=str(torch.__version__),cuda=torch.version.cuda or getattr(torch.version,'hip',None),
         cudnn=torch.backends.cudnn.version(),gpu=torch.cuda.get_device_name(),
         threads=torch.get_num_threads(),code=[(code_hash if path in aliased else sha256)(path) for path in code],
         tracking=sha256(project/'tracking.npz'),video=stamp(project/'input.mp4'),

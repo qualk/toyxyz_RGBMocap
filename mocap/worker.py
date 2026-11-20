@@ -102,7 +102,7 @@ def fingerprint(stage, project, result="auto", _worker_hash=None, _legacy_routin
     identity = {"stage": stage, "code": [(_worker_hash if _worker_hash and p == Path(__file__) else predecessor[p.name] if _legacy_routing and p.name in predecessor else non_generator[p.name] if stage!='export' and p.name in non_generator else code_hash(p)) for p in sources], "inputs": [], "models": []}
     if stage in ('gvhmr','features'):
         import torch
-        identity['runtime']=[str(torch.__version__),torch.version.cuda,torch.backends.cudnn.version(),
+        identity['runtime']=[str(torch.__version__),torch.version.cuda or getattr(torch.version,'hip',None),torch.backends.cudnn.version(),
                              torch.cuda.get_device_name() if torch.cuda.is_available() else 'no_cuda',
                              os.environ.get('RGB_MOCAP_WORKER_THREADS'),os.environ.get('RGB_MOCAP_COMPUTE_MODE')]
     if stage in {"export", "footmr", "handflow", "correct"}:
@@ -275,7 +275,7 @@ def main() -> int:
             memory=psutil.virtual_memory()
             free=total=None
             if args.stage=='people':
-                if not torch.cuda.is_available():raise RuntimeError('A supported NVIDIA CUDA GPU is required for person detection.')
+                if not torch.cuda.is_available():raise RuntimeError('A supported CUDA or ROCm GPU is required for person detection.')
                 free,total=torch.cuda.mem_get_info()
             if free is not None:
                 set_memory_budget(free,total)
@@ -347,7 +347,7 @@ def main() -> int:
         free=None
         if args.stage in ('track','pva','features','gvhmr','refine','footmr','handflow'):
             if not torch.cuda.is_available():
-                raise RuntimeError('A supported NVIDIA CUDA GPU is required for this model. Check System in Help for details.')
+                raise RuntimeError('A supported CUDA or ROCm GPU is required for this model. Check System in Help for details.')
             free,total=torch.cuda.mem_get_info()
         memory=psutil.virtual_memory()
         if free is not None:

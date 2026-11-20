@@ -8,16 +8,38 @@ import json
 import os
 from pathlib import Path
 
+WINDOWS = os.name == 'nt'
+# Linux runs the GPU pipeline on AMD ROCm (HIP). PyTorch's ROCm builds expose the
+# same torch.cuda API as CUDA builds, so inference code needs no device rewrite;
+# only the wheel pins, version checks and hardware wording differ. Windows keeps
+# the validated CUDA pins unchanged.
+ROCM_TORCH = '2.14.0+rocm10.1.0'
+ROCM_TORCHVISION = '0.29.0a0+rocm10.1.0'
+CUDA_TORCH = '2.7.1+cu128'
+CUDA_TORCHVISION = '0.22.1+cu128'
+CUDA_EXMR_TORCH = '2.8.0+cu128'
+CUDA_EXMR_TORCHVISION = '0.23.0+cu128'
+
+
+def gpu_pins(rocm=None, exmr=False):
+    """Exact torch/torchvision pair for the requested (or current) GPU backend."""
+    rocm = (not WINDOWS) if rocm is None else rocm
+    if rocm: return (ROCM_TORCH, ROCM_TORCHVISION)
+    return ((CUDA_EXMR_TORCH, CUDA_EXMR_TORCHVISION) if exmr else (CUDA_TORCH, CUDA_TORCHVISION))
+
+
+TORCH, TORCHVISION = gpu_pins()
+TORCH_EXMR, TORCHVISION_EXMR = gpu_pins(exmr=True)
+
 PROFILES = {
-    'shared': dict(folder='runtime', dev='.venv', base=None, python='3.10.22', packages={'torch':'2.7.1+cu128','numpy':'1.23.5','scipy':'1.14.1','timm':'0.9.12'}),
-    'gui': dict(folder='runtime_gui', dev='.venv', base='shared', python='3.10.22', packages={'torch':'2.7.1+cu128','numpy':'1.23.5','scipy':'1.14.1','timm':'0.9.12'}),
-    'flow': dict(folder='runtime_flow', dev='.venv-flow', base='shared', python='3.10.22', packages={'torch':'2.7.1+cu128','numpy':'1.26.4','scipy':'1.15.3','timm':'1.0.30'}),
-    'hand': dict(folder='runtime_hand', dev='.venv-hand', base='shared', python='3.10.22', packages={'torch':'2.7.1+cu128','numpy':'1.23.5','timm':'0.9.12','ultralytics':'8.3.80'}),
-    'htd': dict(folder='runtime_htd', dev='.venv-htd', base='shared', python='3.10.22', packages={'torch':'2.7.1+cu128','numpy':'1.23.5','timm':'1.0.12'}),
-    'exmr': dict(folder='runtime_exmr', dev='.venv-exmr', base=None, python='3.12.10', packages={'torch':'2.8.0+cu128','numpy':'2.3.5','scipy':'1.15.2','timm':'0.9.12'}),
+    'shared': dict(folder='runtime', dev='.venv', base=None, python='3.10.22', packages={'torch':TORCH,'numpy':'1.23.5','scipy':'1.14.1','timm':'0.9.12'}),
+    'gui': dict(folder='runtime_gui', dev='.venv', base='shared', python='3.10.22', packages={'torch':TORCH,'numpy':'1.23.5','scipy':'1.14.1','timm':'0.9.12'}),
+    'flow': dict(folder='runtime_flow', dev='.venv-flow', base='shared', python='3.10.22', packages={'torch':TORCH,'numpy':'1.26.4','scipy':'1.15.3','timm':'1.0.30'}),
+    'hand': dict(folder='runtime_hand', dev='.venv-hand', base='shared', python='3.10.22', packages={'torch':TORCH,'numpy':'1.23.5','timm':'0.9.12','ultralytics':'8.3.80'}),
+    'htd': dict(folder='runtime_htd', dev='.venv-htd', base='shared', python='3.10.22', packages={'torch':TORCH,'numpy':'1.23.5','timm':'1.0.12'}),
+    'exmr': dict(folder='runtime_exmr', dev='.venv-exmr', base=None, python='3.12.10', packages={'torch':TORCH_EXMR,'numpy':'2.3.5','scipy':'1.15.2','timm':'0.9.12'}),
 }
 
-WINDOWS = os.name == 'nt'
 # Every platform pins the same package versions; only the wheel files differ.
 LOCK = 'installer/runtime-lock.json' if WINDOWS else 'installer/runtime-lock-linux.json'
 SUPPORT_LOCK = 'installer/git-support-lock.json' if WINDOWS else 'installer/git-support-lock-linux.json'

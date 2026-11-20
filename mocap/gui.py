@@ -1671,7 +1671,11 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
         elif kind == "diagnostics":
             data = event["result"]
             self.log.append(json.dumps(data, ensure_ascii=False, indent=2))
-            self.hardware_summary = f"{data.get('gpu', 'GPU unavailable')} · RAM {data.get('ram_gib', '?')}GB · CUDA check {'Passed' if data.get('cuda_matmul_verified') else 'Unavailable'}"
+            backend = 'ROCm' if data.get('rocm') else 'CUDA'
+            extra = ''
+            if data.get('torchvision_nms_verified') is False:
+                extra = ' · NMS kernels unavailable'
+            self.hardware_summary = f"{data.get('gpu', 'GPU unavailable')} · RAM {data.get('ram_gib', '?')}GB · {backend} check {'Passed' if data.get('cuda_matmul_verified') else 'Unavailable'}{extra}"
             self.status.setText(self.hardware_summary)
         elif kind in {"failed", "blocked"}:
             self.failed = True

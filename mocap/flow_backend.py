@@ -145,7 +145,7 @@ def identity(project,stage):
     import torch
     return dict(version=VERSION,stage=stage,inputs=files,camera_interval=selected if stage=='flow_camera' else None,
         models={key:file_stat(BY_KEY[key].path) for key in STAGE_REQUIREMENTS[stage] if not (stage=='flow_camera' and selected==-1)},
-        code=code,runtime=[str(torch.__version__),torch.version.cuda],frames=state['frames'],fps=state['fps'],take=state.get('person_frames'))
+        code=code,runtime=[str(torch.__version__),torch.version.cuda or getattr(torch.version,'hip',None)],frames=state['frames'],fps=state['fps'],take=state.get('person_frames'))
 
 
 def validate_motion(output,n):
@@ -401,7 +401,7 @@ def run_stage(project,stage,result,emit,force=False):
     interval=camera_interval(n,root_state.get('flow_options',{}).get('camera_interval',0))
     free=total=None
     if stage!='flow_export' and not static:
-        if not torch.cuda.is_available():raise RuntimeError('FlowHMR requires a supported NVIDIA CUDA GPU.')
+        if not torch.cuda.is_available():raise RuntimeError('FlowHMR requires a supported CUDA or ROCm GPU.')
         free,total=torch.cuda.mem_get_info()
     validate_length(n)
     if free is not None:set_memory_budget(free,total)
