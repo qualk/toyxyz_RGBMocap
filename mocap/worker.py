@@ -8,7 +8,7 @@ import time
 import traceback
 from pathlib import Path
 
-from .paths import ROOT
+from .paths import CORRECTION_BIN, NATIVE_SUFFIX, ROOT
 from .storage import atomic_json, sha256
 from .resource_cache import code_hash
 from .motion_tools import MOTION_TOOLS, resolve_motion_result, RESULTS, result_sources, result_options, result_is_current, base_result, body_result, has_handflow, require_supported_project, UnsupportedMotionTool
@@ -73,7 +73,7 @@ def fingerprint(stage, project, result="auto", _worker_hash=None, _legacy_routin
         sources.append(Path(__file__).with_name('mixamo_rig.py'))
         sources.append(Path(__file__).with_name('correction_settings.py'))
         sources.append(Path(__file__).with_name('foot_contacts.py'))
-        sources.extend((ROOT/'third_party/KimodoMotionCorrection/bin').glob('*.pyd'))
+        sources.extend(CORRECTION_BIN.glob('*'+NATIVE_SUFFIX))
     if stage in ('correct','export'):
         sources.append(Path(__file__).with_name('result_artifacts.py'))
     if stage == "pva":
@@ -102,7 +102,7 @@ def fingerprint(stage, project, result="auto", _worker_hash=None, _legacy_routin
     identity = {"stage": stage, "code": [(_worker_hash if _worker_hash and p == Path(__file__) else predecessor[p.name] if _legacy_routing and p.name in predecessor else non_generator[p.name] if stage!='export' and p.name in non_generator else code_hash(p)) for p in sources], "inputs": [], "models": []}
     if stage in ('gvhmr','features'):
         import torch
-        identity['runtime']=[str(torch.__version__),torch.version.cuda,torch.backends.cudnn.version(),
+        identity['runtime']=[str(torch.__version__),torch.version.cuda or getattr(torch.version,'hip',None),torch.backends.cudnn.version(),
                              torch.cuda.get_device_name() if torch.cuda.is_available() else 'no_cuda',
                              os.environ.get('RGB_MOCAP_WORKER_THREADS'),os.environ.get('RGB_MOCAP_COMPUTE_MODE')]
     if stage in {"export", "footmr", "handflow", "correct"}:
@@ -139,6 +139,7 @@ def main() -> int:
     parser.add_argument("--start", type=float, default=0)
     parser.add_argument("--end", type=float)
     parser.add_argument("--model")
+    parser.add_argument("--in-place", action="store_true", help="import_model: keep the checked file where it is and remember its location")
     parser.add_argument("--motion-tool", choices=list(MOTION_TOOLS))
     parser.add_argument("--result", choices=["auto", *RESULTS], default="auto")
     parser.add_argument("--output", type=Path)
@@ -198,7 +199,7 @@ def main() -> int:
             return 0
         if args.stage=='import_model':
             from .models import import_model_file
-            result=import_model_file(args.model,args.video)
+            result=import_model_file(args.model,args.video,in_place=args.in_place)
             emit('downloaded',path=str(result),model=args.model)
             return 0
         if args.stage=='save_fbx':
@@ -251,9 +252,9 @@ def main() -> int:
                 length_unit='meter',up_axis='Y',rotation_order=target.get('export_bind',{}).get('rotation_order_default','ZXY'),
                 finger_motion='ExMR native finger inference' if require_supported_project(project).key=='exmr' else 'HandFlow finger inference; body and wrists preserved' if has_handflow(kind) else 'Source relaxed pose animated relative to open bind; finger inference is not enabled',bind_pose=target.get('export_bind',{}))
             atomic_json(export_path,metadata)
-            import psutil
+            from .process_memory import peak_ram_bytes
             emit('complete',stage='rig',output=str(result),cached=False,elapsed=time.monotonic()-started,
-                peak_ram_gib=round(psutil.Process().memory_info().peak_wset/1024**3,3))
+                peak_ram_gib=round(peak_ram_bytes()/1024**3,3))
             return 0
         if args.stage == "mesh":
             from .mesh_data import prepare_mesh_preview
@@ -274,7 +275,7 @@ def main() -> int:
             memory=psutil.virtual_memory()
             free=total=None
             if args.stage=='people':
-                if not torch.cuda.is_available():raise RuntimeError('A supported NVIDIA CUDA GPU is required for person detection.')
+                if not torch.cuda.is_available():raise RuntimeError('A supported CUDA or ROCm GPU is required for person detection.')
                 free,total=torch.cuda.mem_get_info()
             if free is not None:
                 set_memory_budget(free,total)
@@ -286,8 +287,9 @@ def main() -> int:
             else:
                 output=prepare_person(project,args.person_id,args.first_frame,args.end_frame or manifest['frames'],args.result,
                     {'auto_floor':args.floor is None,'floor':float(args.floor or 0),'preset':args.correction_preset,'pelvis_offset':args.pelvis_offset,'mode':args.correction_mode,'foot_lock':bool(args.foot_lock),'hand_lock':bool(args.hand_lock)},emit)
+            from .process_memory import peak_ram_bytes
             emit('complete',stage=args.stage,output=str(output),elapsed=time.monotonic()-started,cached=False,
-                peak_ram_gib=round(psutil.Process().memory_info().peak_wset/1024**3,3),
+                peak_ram_gib=round(peak_ram_bytes()/1024**3,3),
                 peak_cuda_allocated_gib=round(torch.cuda.max_memory_allocated()/1024**3,3) if torch.cuda.is_initialized() else 0)
             return 0
         outputs = {"track": "tracking.npz", "pva": "pva_results.pt", "features": "features.pt", "gvhmr": "hmr4d_results.pt", "refine": "opt_results.pt", "export": "motion.bvh"}
@@ -345,7 +347,7 @@ def main() -> int:
         free=None
         if args.stage in ('track','pva','features','gvhmr','refine','footmr','handflow'):
             if not torch.cuda.is_available():
-                raise RuntimeError('A supported NVIDIA CUDA GPU is required for this model. Check System in Help for details.')
+                raise RuntimeError('A supported CUDA or ROCm GPU is required for this model. Check System in Help for details.')
             free,total=torch.cuda.mem_get_info()
         memory=psutil.virtual_memory()
         if free is not None:
@@ -380,8 +382,8 @@ def main() -> int:
             result = getattr(engines, args.stage)(project, emit)
         elapsed = time.monotonic() - started
         import torch
-        import psutil
-        memory = {"peak_ram_gib": round(psutil.Process().memory_info().peak_wset / 1024**3, 3)}
+        from .process_memory import peak_ram_bytes
+        memory = {"peak_ram_gib": round(peak_ram_bytes() / 1024**3, 3)}
         if torch.cuda.is_initialized():
             memory.update(peak_cuda_allocated_gib=round(torch.cuda.max_memory_allocated() / 1024**3, 3),
                           peak_cuda_reserved_gib=round(torch.cuda.max_memory_reserved() / 1024**3, 3))

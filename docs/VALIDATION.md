@@ -37,6 +37,45 @@ for Manny and Quinn, mixed MetaHuman face streaming and the UE 5.7.4 Win64 ZIP.
 - Added a regression test for scaled horizontal ankle spacing. All 20 tests
   in the source regression suite passed.
 
+## AMD ROCm Linux runtime (2026-11-20)
+
+- On an Ubuntu-based CachyOS x86-64 desktop with an Radeon RX 9060 XT
+  (`gfx1200`), `rocminfo` and `hipconfig` reported a working ROCm 10.1 / HIP
+  7.16 stack. The GPU appears as `amdgcn-amd-amdhsa--gfx1200`, 32 compute units.
+- `./install.sh` downloaded the pinned AMD ROCm PyTorch/TorchVision, Triton,
+  gfx1200 device and ROCm SDK wheels, rebuilt the sdist-only `rocm_sdk` shim,
+  and verified every runtime group including real device matmuls in the shared
+  and ExMR base runtimes. `./install.sh --verify-all` reused those verified
+  runtimes without reinstalling.
+- **Help > Check System** through the managed `diagnose` worker reported
+  `gpu_backend=rocm`, `torch=2.14.0+rocm10.1.0`, HIP `7.16.26385`,
+  `gpu=AMD Radeon RX 9060 XT`, `gpu_arch=gfx1200`, 15.9 GiB VRAM and
+  `cuda_matmul_verified=true`. The ExMR runtime also ran a device matmul and
+  validated its pinned imports.
+- The GUI launched with the installed runtimes and stayed up until externally
+  terminated. fp16/bf16 matmul, SDPA and the per-process VRAM cap worked on the
+  AMD device. The first person-detection attempt failed with
+  `hipErrorInvalidDeviceFunction` in `torchvision.ops.nms`: AMD ships torchvision
+  compiled ops in a separate `amd-torchvision-device-gfx1200` kernel package.
+  The lock now includes it; installer verification and Check System exercise
+  device NMS explicitly.
+- With locally downloaded models, a 30-frame prepared clip ran the complete ExMR
+  pipeline on ROCm: `track` (about 4.9 s), `exmr_preprocess` (about 82.6 s),
+  `exmr_features` (about 29.4 s) and `exmr` (about 9.6 s) all completed and wrote
+  their receipts. TorchVision detects five people in a standard bus reference
+  image on the AMD device. A 259-frame user clip then ran all ExMR stages and
+  tracked all 301 working frames.
+- Contact correction initially segfaulted: ROCm PyTorch preloads an LP64
+  OpenBLAS globally, so NumPy's ILP64 `cblas_dgemm64_` resolved `dgemm_tn` to the
+  ROCm library and its AVX-512 kernels crashed on this Zen 4 CPU. GDB identified
+  `dgemm_oncopy_COOPERLAKE` in `librocm-openblas.so.0`. Preloading NumPy's own
+  ILP64 OpenBLAS (with its quadmath/gfortran dependencies) into the global
+  namespace before Torch imports fixes it; `mocap/gpu_compat.py` is called from
+  `worker_boot.py` on Linux ROCm only. The same 259-frame clip then completed
+  `correct` in about 2.1 s, with unchanged CPU-only correction numerics.
+  FlowHMR, GVHMR and exports were not re-tested after these fixes. Windows CUDA
+  pins are unchanged.
+
 ## UE5 Mannequin FBX with optional mesh (2026-11-20)
 
 - The app export worker wrote with the bundled Blender 4.5 runtime. The export

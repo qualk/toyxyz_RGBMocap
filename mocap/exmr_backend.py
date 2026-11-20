@@ -7,7 +7,7 @@ from pathlib import Path
 import gc, hashlib, json, math, os, sys, time
 import numpy as np
 from .paths import ROOT, HOME, UPSTREAM
-from .storage import atomic_json, sha256
+from .storage import atomic_json, hard_link, sha256
 from .resource_cache import code_hash
 from .model_session import set_memory_budget
 from .compute_policy import gpu_memory_fraction
@@ -47,15 +47,16 @@ def activate():
         if not (root/name).is_dir():raise RuntimeError('ExMR runtime is missing. Repair the application installation.')
     for path in (root,root/'third_party/sapiens2',root/'third_party/hamer'):
         if str(path) not in sys.path:sys.path.insert(0,str(path))
-    os.environ.update(PYOPENGL_PLATFORM='win32',WANDB_MODE='disabled',PYTHONNOUSERSITE='1')
+    os.environ.update(WANDB_MODE='disabled',PYTHONNOUSERSITE='1')
+    if os.name=='nt':os.environ['PYOPENGL_PLATFORM']='win32'  # Elsewhere HaMeR's renderer defaults to EGL.
     weights=HOME/'cache/exmr/assets';weights.mkdir(parents=True,exist_ok=True)
     for key,name in LINKS.items():
         source=BY_KEY[key].path
         if not ready(BY_KEY[key]):continue
         target=weights/name;target.parent.mkdir(parents=True,exist_ok=True)
         if target.exists() and target.samefile(source):continue
-        if target.exists():target.unlink()
-        try:os.link(source,target)
+        if target.exists() or target.is_symlink():target.unlink()  # includes links left dangling by moved models
+        try:hard_link(source,target)
         except OSError:
             try:target.symlink_to(source)
             except OSError as exc:raise RuntimeError('Keep ExMR models and the app on the same drive, or enable Windows symbolic links.') from exc
@@ -155,6 +156,7 @@ def identity(project,stage):
 def frame_dir(project,n):
     import cv2
     from .video import executable
+    from .paths import NO_WINDOW
     import subprocess
     directory=project/'exmr_frames';directory.mkdir(exist_ok=True)
     identity=dict(input=file_stat(project/'input.mp4'),frames=n,version=1)
@@ -162,7 +164,14 @@ def frame_dir(project,n):
         if json.loads((directory/'receipt.json').read_text(encoding='utf-8'))==identity and len(list(directory.glob('*.jpg')))==n:return directory
     except (OSError,ValueError):pass
     for path in directory.glob('*.jpg'):path.unlink()
-    subprocess.run([executable('ffmpeg'),'-v','error','-i',str(project/'input.mp4'),'-vsync','0','-q:v','2','-start_number','0','-threads','2','-y',str(directory/'%06d.jpg')],check=True,creationflags=0x08000000)
+    # FFmpeg 7+ removed -vsync; older Windows builds do not know -fps_mode.
+    try:
+        help_text=subprocess.run([executable('ffmpeg'),'-hide_banner','-h','full'],capture_output=True,
+                                 text=True,timeout=10,creationflags=NO_WINDOW).stdout
+        passthrough='-fps_mode' in help_text
+    except (OSError,subprocess.SubprocessError):passthrough=False
+    timing=['-fps_mode','passthrough'] if passthrough else ['-vsync','0']
+    subprocess.run([executable('ffmpeg'),'-v','error','-i',str(project/'input.mp4'),*timing,'-q:v','2','-start_number','0','-threads','2','-y',str(directory/'%06d.jpg')],check=True,creationflags=NO_WINDOW)
     if len(list(directory.glob('*.jpg')))!=n:raise ValueError('ExMR frame count differs from project')
     atomic_json(directory/'receipt.json',identity)
     return directory
@@ -222,7 +231,7 @@ def run_stage(project,stage,result,emit,force=False,feature_phase=None):
     except (OSError,ValueError,KeyError,RuntimeError,EOFError):cached=False
     if cached:
         complete_stage(project,stage,project/outputs[0],old.get('elapsed',0),True,emit);return
-    if not torch.cuda.is_available():raise RuntimeError('ExMR requires a supported NVIDIA CUDA GPU. Check System in Help for details.')
+    if not torch.cuda.is_available():raise RuntimeError('ExMR requires a supported CUDA or ROCm GPU. Check System in Help for details.')
     started=time.monotonic()
     free,total=torch.cuda.mem_get_info();set_memory_budget(free,total)
     torch.set_num_threads(4);cv2.setNumThreads(2);torch.manual_seed(0);np.random.seed(0)

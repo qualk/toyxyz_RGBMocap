@@ -6,6 +6,9 @@ from pathlib import Path
 root=Path(__file__).resolve().parent
 sys.path.insert(0,str(root))
 from mocap.runtime_registry import activate, profile_for
+from mocap.gpu_compat import install_rocm_blas_compat
+# Must run before any worker module imports Torch (ROCm BLAS symbol interposition).
+install_rocm_blas_compat()
 if len(sys.argv)>1 and sys.argv[1]=='--runtime-check':
     print(json.dumps(activate(root,sys.argv[2])))
 else:

@@ -18,7 +18,7 @@ import uuid
 from .paths import ROOT, UPSTREAM
 from .people_store import (VERSION, load_people, media_receipt, person_color, safe_child,
                            save_people, visible_runs)
-from .storage import atomic_json, sha256
+from .storage import atomic_json, hard_link, sha256
 
 
 class AppearanceEncoder:
@@ -164,7 +164,7 @@ def _link(source, target):
             return  # A prior cross-volume or permission fallback made an ordinary copy.
         raise RuntimeError('Existing person media does not match the source.')
     try:
-        os.link(source,target)
+        hard_link(source,target)
     except OSError:
         shutil.copy2(source,target)
 
@@ -182,7 +182,7 @@ def discover(project, emit):
     manifest = json.loads((project/'project.json').read_text(encoding='utf-8'))
     from .cache_compat import discovery_identity
     digest = hashlib.sha256(json.dumps([media_receipt(project),str(torch.__version__),
-        torch.version.cuda,cv2.__version__,ultralytics.__version__,torch.cuda.get_device_name(),
+        torch.version.cuda or getattr(torch.version,'hip',None),cv2.__version__,ultralytics.__version__,torch.cuda.get_device_name(),
         discovery_identity(Path(__file__)),sha256(UPSTREAM/'OSNet/osnet.py'),
         *[sha256(BY_KEY[key].path) for key in ('yolo','person_reid')]]).encode()).hexdigest()
     try:old = load_people(project) if (project/'people.json').exists() else None

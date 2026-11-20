@@ -19,7 +19,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QFil
     QAbstractItemView, QSplitter, QTabBar, QTableWidget, QTableWidgetItem, QTextBrowser, QTextEdit, QVBoxLayout, QWidget)
 
 from .models import MODELS_LIST, import_body_model, missing, ready
-from .paths import ROOT, PROJECTS, worker_command
+from .paths import MODEL_FILES, ROOT, PROJECTS, worker_command
+from .process_group import kill_group, own_session
 from .video import select_preview
 from .viewer import VideoView, MotionView
 from .playback import playback_frame, PlaybackTimerResolution
@@ -411,7 +412,8 @@ class ModelsDialog(QDialog):
             files = self.inspect_model_files(model)
             if files and all(item is not None for item in files):
                 self.removable.add(model.key)
-            for column, text in ((0, name), (1, self.usage_text(model.key)), (2, "Ready" if available else "Missing")):
+            status = ("Ready (in place)" if model.key in MODEL_FILES else "Ready") if available else "Missing"
+            for column, text in ((0, name), (1, self.usage_text(model.key)), (2, status)):
                 item = self.table.item(i, column)
                 if item is None:
                     item = QTableWidgetItem(); self.table.setItem(i, column, item)
@@ -436,7 +438,7 @@ class ModelsDialog(QDialog):
                 cell.manual.clicked.connect(lambda checked=False, key=model.key: self.manual_setup(key))
                 row.addWidget(cell.manual)
                 cell.local = QPushButton("Import...")
-                cell.local.setToolTip(tooltip_text("Choose a model file you already downloaded. The app checks it before replacing any existing file."))
+                cell.local.setToolTip(tooltip_text("Choose a model file you already downloaded. The app checks it before replacing any existing file, then copies it or uses it where it is."))
                 cell.local.clicked.connect(lambda checked=False, key=model.key: self.import_local_model(key))
                 row.addWidget(cell.local)
                 self.table.setCellWidget(i, 3, cell)
@@ -569,8 +571,27 @@ class ModelsDialog(QDialog):
         model = BY_KEY[key]
         name, _ = QFileDialog.getOpenFileName(picker_parent or self, 'Import ' + model.name, '',
             ('PEAR assets (assets.zip);;All files (*)' if key=='pear_geometry' else f'Model file ({model.path.name});;All files (*)'))
-        if name:
-            self.start_model_jobs([('import_model', ['--model', key, '--video', name])])
+        if not name:
+            return
+        arguments = ['--model', key, '--video', name]
+        from .paths import MODELS
+        # Anything outside the model's models-folder path can be copied there or used where it is.
+        if key != 'pear_geometry' and Path(name).resolve() != (MODELS / model.relative).resolve():
+            box = QMessageBox(picker_parent or self)
+            box.setWindowTitle('Import ' + model.name)
+            box.setText('Use this file where it is, or copy it into the models folder?')
+            box.setInformativeText('Use in Place checks the file and remembers its location in config/local.json; nothing is copied. '
+                                   'Copy checks it and stores a copy in ' + str(MODELS) + '.')
+            in_place = box.addButton('Use in Place', QMessageBox.AcceptRole)
+            copy = box.addButton('Copy', QMessageBox.AcceptRole)
+            box.addButton(QMessageBox.Cancel)
+            box.setDefaultButton(copy)
+            box.exec()
+            if box.clickedButton() not in (in_place, copy):
+                return
+            if box.clickedButton() is in_place:
+                arguments.append('--in-place')
+        self.start_model_jobs([('import_model', arguments)])
 
 
 
@@ -1619,6 +1640,9 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
             if self.current_stage=='save_project':
                 self.finish_project_save()
                 return
+            if self.current_stage=='import_model':
+                from .paths import reload_model_files
+                reload_model_files()  # The import worker may have changed where a model is read from.
             completion_message=self.status.text()
             self.finish_people_jobs()
             if self.failed or self.cancelled:self.status.setText(completion_message)
@@ -1701,6 +1725,7 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
             self.next_job()
             return
         self.process = QProcess(self)
+        own_session(self.process)
         self.process.setWorkingDirectory(str(ROOT))
         environment = QProcessEnvironment.systemEnvironment()
         environment.insert("PYTHONIOENCODING", "utf-8")
@@ -1841,7 +1866,11 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
         elif kind == "diagnostics":
             data = event["result"]
             self.log.append(json.dumps(data, ensure_ascii=False, indent=2))
-            self.hardware_summary = f"{data.get('gpu', 'GPU unavailable')} · RAM {data.get('ram_gib', '?')}GB · CUDA check {'Passed' if data.get('cuda_matmul_verified') else 'Unavailable'}"
+            backend = 'ROCm' if data.get('rocm') else 'CUDA'
+            extra = ''
+            if data.get('torchvision_nms_verified') is False:
+                extra = ' · NMS kernels unavailable'
+            self.hardware_summary = f"{data.get('gpu', 'GPU unavailable')} · RAM {data.get('ram_gib', '?')}GB · {backend} check {'Passed' if data.get('cuda_matmul_verified') else 'Unavailable'}{extra}"
             self.status.setText(self.hardware_summary)
         elif kind in {"failed", "blocked"}:
             self.failed = True
@@ -1944,6 +1973,7 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
                 helper.finished.connect(cancelled)
                 helper.start("taskkill.exe", ["/PID", str(worker.processId()), "/T", "/F"])
             else:
+                kill_group(worker.processId())
                 worker.kill()
         self.status.setText("Cancelled. Completed stages will be reused next time.")
 

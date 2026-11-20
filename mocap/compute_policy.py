@@ -1,4 +1,4 @@
-"""Worker resource budgets. GUI imports stay free of Torch and CUDA."""
+"""Worker resource budgets. GUI imports stay free of Torch and GPU runtime."""
 from __future__ import annotations
 import os
 GIB=1024**3
@@ -16,7 +16,7 @@ def gpu_reserve(total):
 
 
 def gpu_memory_fraction(free,total):
-    """Budget the CUDA allocator from current free VRAM, without a second cap.
+    """Budget the CUDA/HIP allocator from current free VRAM, without a second cap.
 
     Model weights, activations and temporary inference buffers share this budget.
     It does not cap non-PyTorch allocations or reserve memory against other apps.
@@ -127,7 +127,7 @@ def retry_cuda(operation,batch,on_retry,oom_type=None,cleanup=None):
             from .memory_mode import effective_mode,announce
             if effective_mode()!='low_memory':
                 os.environ['RGB_MOCAP_EFFECTIVE_MODE']='low_memory'
-                announce('GPU inference','low_memory','Automatic recovery: reducing the image batch after CUDA memory pressure.')
+                announce('GPU inference','low_memory','Automatic recovery: reducing the image batch after GPU memory pressure.')
             on_retry(batch)
 
 

@@ -3,6 +3,7 @@
 .bootstrap/
 .runtime/
 .setup/
+/uv.lock
 /SETUP_RECEIPT.json
 .build-inputs/
 /build/
@@ -11,6 +12,7 @@
 __pycache__/
 *.py[cod]
 *.pyd
+*.so
 *.dll
 *.exe
 

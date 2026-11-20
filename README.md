@@ -76,6 +76,11 @@ support preparation fails after the base installation succeeds, the base app
 remains usable; rerun `install.cmd` to retry the unavailable support. See
 [verification and repair](docs/USER_GUIDE.md#installation-verification-and-repair).
 
+**Linux (experimental):** ExMR, FlowHMR and GVHMR use separate Linux runtime
+profiles with AMD ROCm (HIP) PyTorch on Radeon GPUs. See
+[Linux setup and compatibility](docs/LINUX.md) for AMD ROCm and WSL 2/CUDA
+notes, system dependencies, and optional feature support.
+
 ### Optional model runtimes
 
 `install.cmd` prepares ExMR, FlowHMR, GVHMR and the small shared-runtime support

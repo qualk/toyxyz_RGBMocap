@@ -4,7 +4,7 @@ This guide is for agents helping users operate or modify RGB MoCap. It describes
 
 ## Start and update
 
-- Windows 64-bit, compatible NVIDIA GPU/driver and OpenGL 4.3 are required for the documented inference workflow. Other systems and GPUs were not comprehensively verified; see [validation](VALIDATION.md).
+- Windows 64-bit, compatible NVIDIA GPU/driver and OpenGL 4.3 are required for the documented Windows inference workflow. The experimental Linux path uses AMD ROCm (HIP) PyTorch with hash-checked AMD wheels and a pinned `rocm_sdk` shim; it was verified on an RX 9060 XT (gfx1200). Windows CUDA pins are unchanged. Other systems and GPUs were not comprehensively verified; see [validation](VALIDATION.md) and [Linux](LINUX.md). Never change numerical precision, batch sizes or temporal context to make another GPU appear supported.
 - In a writable checkout, run `install.cmd` once. It sets up separate pinned profiles for ExMR, FlowHMR and GVHMR and their supported add-ons, PEAR support over the shared runtime, Blender 4.5, FFmpeg and the prebuilt native motion-correction module. It does not install only the selected model's runtime or obtain AI weights/body data. Downloading and disk space are required. Models are obtained separately. Optional MAMMA, PromptHMR and GEM-X have separate setup commands.
 - Run `RGBMoCap.cmd`. Keep its command window open; launch errors, processing messages and app Console output are also sent there, but long messages can be truncated and a saturated output queue can drop messages. Within the GUI, **Help > Check System** checks the system.
 - Base worker commands use explicit `-X utf8`, including isolated `-I` launches. Isolated mode ignores `PYTHONIOENCODING`/`PYTHONUTF8` from the parent environment. Any redirected/discarded text log stream must also specify UTF-8. Keep byte-oriented PEAR IPC unchanged.
@@ -148,7 +148,7 @@ pipeline-hash pair preserves valid existing inference receipts for this cache-on
 fix; do not extend that exception to numerical/weight changes. No optional-runtime
 rebuild is required. See [supporting downloads](models/PROMPTHMR.md#shared-supporting-model-download-cache).
 
-Model files are in `<installation>/models/` by default. To reuse a legitimate installation, close both apps, copy the complete models folder and its receipt/license files beside `RGBMoCap.cmd`, and check readiness in Model Manager. Do not copy old `runtime*` folders. SMPL Neutral is required by PromptHMR, although it is not required for ExMR/FlowHMR/GVHMR. Standard SMPL-X Neutral is shared by ExMR/GVHMR/PromptHMR; MAMMA uses its separate locked-head bodies. Exact requirements are defined by `mocap/models.py` and the chosen stages, not by guessed filenames.
+Model files are in `<installation>/models/` by default; the local `config/local.json` `models_dir` / `model_files` entries (written by Model Manager's **Use in Place**) relocate them or use checked files where they are, see [other folders](USER_GUIDE.md#keep-models-in-another-folder). To reuse a legitimate installation, close both apps, copy the complete models folder and its receipt/license files beside `RGBMoCap.cmd`, and check readiness in Model Manager. Do not copy old `runtime*` folders. SMPL Neutral is required by PromptHMR, although it is not required for ExMR/FlowHMR/GVHMR. Standard SMPL-X Neutral is shared by ExMR/GVHMR/PromptHMR; MAMMA uses its separate locked-head bodies. Exact requirements are defined by `mocap/models.py` and the chosen stages, not by guessed filenames.
 
 ### SAM 3.1 person discovery
 

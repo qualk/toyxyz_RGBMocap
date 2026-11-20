@@ -58,7 +58,7 @@ def main(argv, emit):
                     elif phase in ('pose','features'):
                         import psutil
                         from .memory_mode import select_stage
-                        if not torch.cuda.is_available():raise RuntimeError('GVHMR requires a supported NVIDIA CUDA GPU')
+                        if not torch.cuda.is_available():raise RuntimeError('GVHMR requires a supported CUDA or ROCm GPU')
                         free,total=torch.cuda.mem_get_info();set_memory_budget(free,total)
                         select_stage('features',free+session.resident_bytes,total,0,observe)
                         from . import engines
@@ -77,10 +77,11 @@ def main(argv, emit):
                     gc.collect()
                     if torch.cuda.is_initialized():torch.cuda.empty_cache()
                     import psutil
+                    from .process_memory import open_handles
                     emit('batch_item_done',stage=stage,project=str(active),index=index,count=len(jobs),
                          resident_models=int(session.value is not None),resident_allocated_bytes=torch.cuda.memory_allocated() if torch.cuda.is_initialized() else 0,
                          peak_cuda_allocated_bytes=torch.cuda.max_memory_allocated() if torch.cuda.is_initialized() else 0,
-                         rss_bytes=psutil.Process().memory_info().rss,handles=psutil.Process().num_handles())
+                         rss_bytes=psutil.Process().memory_info().rss,handles=open_handles(psutil.Process()))
             emit('batch_phase_released',phase=phase,allocated_bytes=torch.cuda.memory_allocated() if torch.cuda.is_initialized() else 0)
         emit('complete',stage=args.stage,output=str(jobs[-1]['project']),cached=all_cached,elapsed=time.monotonic()-started)
         return 0
