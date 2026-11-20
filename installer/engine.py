@@ -32,6 +32,13 @@ class Cancelled(Exception):pass
 
 def emit(kind='progress',**data):
     print(PREFIX+json.dumps(dict(type=kind,**data),ensure_ascii=False),flush=True)
+    if kind=='progress':
+        message=data.get('message','');current=data.get('current') or 0;total=data.get('total') or 0
+        detail=''
+        if total:detail+=' — %.2f/%.2f GiB (%d%%)' % (current/2**30,total/2**30,current*100//total)
+        remaining=data.get('remaining_seconds')
+        if remaining is not None:detail+=' — ~%d min left' % max(1,round(remaining/60))
+        print(message+detail,flush=True)
 
 def sha(path):
     h=hashlib.sha256()
@@ -82,8 +89,14 @@ def run(command,root,cancel,log):
         p=subprocess.Popen([str(x) for x in command],cwd=root,env=clean_env(root),stdout=output,stderr=subprocess.STDOUT,
                            creationflags=NO_WINDOW,start_new_session=not WINDOWS)
         try:
+            started=last=time.monotonic()
             while p.poll() is None:
-                check_cancel(cancel);time.sleep(.2)
+                check_cancel(cancel)
+                now=time.monotonic()
+                if now-last>30:
+                    last=now
+                    print('  still working: %s (%d s elapsed)' % (Path(log).stem,round(now-started)),flush=True)
+                time.sleep(.2)
         except BaseException:
             if WINDOWS:
                 subprocess.run([str(Path(os.environ['SystemRoot'])/'System32/taskkill.exe'),'/PID',str(p.pid),'/T','/F'],

@@ -116,6 +116,13 @@ def _match(features0, features1):
     """FLANN matches of two images' SIFT features with Lowe's ratio test -> (N, 2), (N, 2)
     float32 points."""
     (kp0, des0), (kp1, des1) = features0, features1
+    if (kp0 is None or kp1 is None or des0 is None or des1 is None
+            or len(des0) < 2 or len(des1) < 2):
+        # A blank/low-texture frame has no SIFT features. FLANN cannot build an
+        # index from an empty or uint8 placeholder; report no matches so the
+        # caller keeps the previous pose for this pair (pycolmap returns identity).
+        empty = np.empty((0, 2), dtype=np.float32)
+        return empty, empty.copy()
     flann = cv2.FlannBasedMatcher(dict(algorithm=1, trees=5), dict(checks=50))  # KD-tree
     good = [m for m, n in flann.knnMatch(des0, des1, k=2) if m.distance < 0.7 * n.distance]
     pts0 = np.float32([kp0[m.queryIdx].pt for m in good]).reshape(-1, 2)

@@ -31,11 +31,9 @@ def sha(path):
         for block in iter(lambda:f.read(1024**2),b''):h.update(block)
     return h.hexdigest()
 
-def prepared_lock(work):
-    work=Path(work).resolve();work.mkdir(parents=True,exist_ok=True)
-    lock=json.loads((ROOT/REGISTRY.LOCK).read_text(encoding='utf8'))
-    if sha(ROOT/'mocap/runtime_registry.py')!=lock['registry_sha256']:
-        raise RuntimeError('Runtime registry changed. Review the profile pins and update the source lock explicitly.')
+def stage_bundled(lock, work):
+    """Rebuild locally bundled wheels from validated pure-Python sources."""
+    work=Path(work)
     for name in sorted({p['bundled'] for g in lock['groups'] for p in g['packages'] if p.get('bundled')}):
         filename=Path(name).name;source=ROOT/'installer/runtime_sources'/Path(filename).stem
         if not source.is_dir():raise FileNotFoundError(source)
@@ -49,6 +47,13 @@ def prepared_lock(work):
         for group in lock['groups']:
             for p in group['packages']:
                 if p.get('bundled')==name:p.update(sha256=sha(wheel),bytes=wheel.stat().st_size)
+
+def prepared_lock(work):
+    work=Path(work).resolve();work.mkdir(parents=True,exist_ok=True)
+    lock=json.loads((ROOT/REGISTRY.LOCK).read_text(encoding='utf8'))
+    if sha(ROOT/'mocap/runtime_registry.py')!=lock['registry_sha256']:
+        raise RuntimeError('Runtime registry changed. Review the profile pins and update the source lock explicitly.')
+    stage_bundled(lock,work)
     # The source pins are unchanged; locally rebuilt wheel archive bytes have a new identity.
     lock.pop('id',None);lock['id']=hashlib.sha256(json.dumps(lock,sort_keys=True).encode()).hexdigest()
     (work/'runtime-lock.json').write_text(json.dumps(lock,indent=2),encoding='utf8')

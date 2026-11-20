@@ -9,11 +9,14 @@ size/SHA-256 verification in installer/engine.py is unchanged.
 from __future__ import annotations
 
 import hashlib
+import http.client
 import io
 import json
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
@@ -38,10 +41,33 @@ GPU_PACKAGE_NAMES = {'torch', 'torchvision', 'nvidia-ml-py', 'triton', 'nvidia-c
     'nvidia-nccl-cu12', 'nvidia-nvjitlink-cu12', 'nvidia-nvtx-cu12'}
 
 
+NETWORK_ERRORS = (urllib.error.URLError, OSError, http.client.HTTPException)
+
+
+def _retry(action, attempts=4, label='request'):
+    """Retry transient network failures with bounded exponential backoff."""
+    for attempt in range(attempts):
+        try:
+            return action()
+        except urllib.error.HTTPError as exc:
+            if exc.code < 500 or attempt == attempts - 1:
+                raise
+            error = 'HTTP %d' % exc.code
+        except NETWORK_ERRORS as exc:
+            if attempt == attempts - 1:
+                raise
+            error = str(exc) or type(exc).__name__
+        print('Connection problem fetching %s (%s); retrying %d/%d...' %
+              (label, error, attempt + 2, attempts), flush=True)
+        time.sleep(min(2 ** attempt, 8))
+
+
 def _get(url, headers=None, timeout=90):
-    request = urllib.request.Request(url, headers={'User-Agent': 'RGBMoCap-Setup/1', **(headers or {})})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.status, response.headers, response.read()
+    def once():
+        request = urllib.request.Request(url, headers={'User-Agent': 'RGBMoCap-Setup/1', **(headers or {})})
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status, response.headers, response.read()
+    return _retry(once, label=url)
 
 
 class _RemoteFile(io.RawIOBase):
@@ -102,29 +128,74 @@ def _select(name, version, python, platform):
     return candidates[0]
 
 
+def _file_sha256(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(4 * 1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _wheel_manifest(cache):
+    path = cache / 'rocm-wheels.json'
+    try:
+        return path, json.loads(path.read_text(encoding='utf8'))
+    except (OSError, ValueError):
+        return path, {}
+
+
 def _hash_and_cache(filename, url, cache):
-    """Stream, hash and cache one wheel; return an installer package entry."""
-    digest = hashlib.sha256(); count = 0
-    target_dir = cache / ('pending-' + hashlib.sha1(url.encode()).hexdigest())
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target = target_dir / filename
-    with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'RGBMoCap-Setup/1'}), timeout=300) as response:
-        with target.open('wb') as stream:
-            while True:
-                block = response.read(4 * 1024 ** 2)
-                if not block: break
-                digest.update(block); count += len(block); stream.write(block)
-    value = digest.hexdigest()
-    folder = cache / value
-    folder.mkdir(parents=True, exist_ok=True)
-    permanent = folder / filename
-    if not permanent.is_file() or permanent.stat().st_size != count:
-        os.replace(target, permanent)
-    else:
-        target.unlink(missing_ok=True)
-    name = re.sub(r'[-_.]+', '-', filename.split('-')[0]).lower()
-    return dict(name=name, version=_version_from_filename(filename), filename=filename,
-                url=url, sha256=value, bytes=count)
+    """Hash, cache and reuse one wheel; return an installer package entry."""
+    manifest_path, manifest = _wheel_manifest(cache)
+    cached = manifest.get(url)
+    if isinstance(cached, dict) and cached.get('filename') == filename:
+        wheel = cache / cached.get('sha256', '') / filename
+        try:
+            if wheel.stat().st_size == cached['bytes'] and _file_sha256(wheel) == cached['sha256']:
+                print('  Reusing verified ROCm wheel: ' + filename, flush=True)
+                return dict(cached)
+        except (OSError, KeyError, TypeError):
+            pass
+
+    def once():
+        digest = hashlib.sha256(); count = 0
+        target_dir = cache / ('pending-' + hashlib.sha1(url.encode()).hexdigest())
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / filename
+        with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'RGBMoCap-Setup/1'}), timeout=300) as response:
+            length = response.headers.get('Content-Length', '')
+            total = int(length) if length.isdigit() else 0
+            print('  Fetching ROCm wheel: %s%s' %
+                  (filename, ' (%.0f MiB)' % (total / 2 ** 20) if total else ''), flush=True)
+            started = last = time.monotonic()
+            with target.open('wb') as stream:
+                while True:
+                    block = response.read(4 * 1024 * 1024)
+                    if not block: break
+                    digest.update(block); count += len(block); stream.write(block)
+                    now = time.monotonic()
+                    if now - last > 5:
+                        last = now
+                        print('    %s: %.0f/%.0f MiB (%.0f s)' %
+                              (filename, count / 2 ** 20, (total or count) / 2 ** 20, now - started), flush=True)
+        value = digest.hexdigest()
+        print('  Verified ROCm wheel: %s (%.0f MiB)' % (filename, count / 2 ** 20), flush=True)
+        folder = cache / value
+        folder.mkdir(parents=True, exist_ok=True)
+        permanent = folder / filename
+        if not permanent.is_file() or permanent.stat().st_size != count:
+            os.replace(target, permanent)
+        else:
+            target.unlink(missing_ok=True)
+        name = re.sub(r'[-_.]+', '-', filename.split('-')[0]).lower()
+        entry = dict(name=name, version=_version_from_filename(filename), filename=filename,
+                     url=url, sha256=value, bytes=count)
+        manifest[url] = entry
+        partial = manifest_path.with_name(manifest_path.name + '.partial')
+        partial.write_text(json.dumps(manifest, indent=2), encoding='utf8')
+        os.replace(partial, manifest_path)
+        return entry
+    return _retry(once, label=filename)
 
 
 def _version_from_filename(filename):
@@ -164,7 +235,9 @@ def rocm_entries(platform, arch, python_versions, cache):
                            '. Set RGB_MOCAP_GPU_ARCH to a published gfx architecture.')
     pins = PINS[platform]
     result = {}
+    print('Resolving AMD ROCm wheels for %s (%s) from %s' % (arch, platform, AMD_INDEX), flush=True)
     for python in python_versions:
+        print('AMD ROCm wheel set for Python %s:' % python, flush=True)
         entries = []
         for name in ('torch', 'torchvision'):
             _device_packages(name, pins[name], python, platform, arch, cache, entries)
@@ -178,6 +251,7 @@ def rocm_entries(platform, arch, python_versions, cache):
         shim = _bundled_rocm()
         if shim and shim['name'] not in {e['name'] for e in entries}:
             entries.append(shim)
+        print('AMD ROCm wheel set for Python %s ready: %d packages.' % (python, len(entries)), flush=True)
         result[python] = entries
     return result
 

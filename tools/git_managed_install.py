@@ -4,7 +4,7 @@ import argparse,hashlib,importlib.util,json,os,shutil,stat,subprocess,sys,urllib
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 sys.path.insert(0,str(ROOT/'tools'))
-from runtime_support import REGISTRY,cache_dependency_files,prepared_lock,sha
+from runtime_support import REGISTRY,cache_dependency_files,prepared_lock,sha,stage_bundled
 from session_lock import app_lock
 from git_transaction import begin,promote,recover,store
 from runtime_verification import reuse as reuse_verification,save as save_verification,inventory as runtime_inventory
@@ -37,6 +37,7 @@ def setup():
     with app_lock(ROOT):
         pending=folder/'git-sync.pending';pending.write_text('Run install.cmd to complete or retry.\n',encoding='utf8')
         frozen=source_snapshot()
+        print('Preparing pinned runtime profiles...',flush=True)
         lock=prepared_lock(resources)
         # Select GPU wheels from the detected vendor/architecture. The checked-in
         # locks hold CUDA wheels; ROCm wheels (including device kernel packages)
@@ -59,7 +60,9 @@ def setup():
                 raise RuntimeError('Could not determine the AMD gfx architecture. Set RGB_MOCAP_GPU_ARCH=gfxNNNN and rerun Setup.')
             platform_key='windows' if os.name=='nt' else 'linux'
             python_versions=sorted({g['python'] for g in lock['groups']})
+            print('Selecting GPU wheel set for %s...' % arch,flush=True)
             lock=apply_backend(lock,platform_key,arch,python_versions,folder/'downloads')
+            stage_bundled(lock,resources)
             lock['id']=hashlib.sha256(json.dumps({k:v for k,v in lock.items() if k!='id'},sort_keys=True).encode()).hexdigest()
         atomic(marker,dict(backend=backend,arch=arch,name=gpu['name'],vendor=gpu['vendor']))
         for origin,name in [(ROOT/'installer/engine.py','engine.py'),(ROOT/'installer/verify_runtime.py','verify_runtime.py'),(ROOT/'mocap/runtime_registry.py','runtime_registry.py')]:
@@ -84,15 +87,19 @@ def setup():
         except (OSError,ValueError,KeyError,TypeError):support_ready=False
         support_stage=folder/('git-support-'+uuid.uuid4().hex)
         if not support_ready:
+            print('Preparing native support components...',flush=True)
             support_stage.mkdir()
             from support_components import stage as stage_support
             stage_support(support_stage, resources/'support-downloads', support)
+        print('Staging auxiliary files...',flush=True)
         if args.assets_root:stage_assets(args.assets_root,ROOT)
         else:stage_assets(None,ROOT,download=True)
         logs=folder/'logs';logs.mkdir(exist_ok=True)
         ids=engine.group_ids(lock)
+        print('Checking installed pinned runtimes...',flush=True)
         checked,retained=reuse_verification(ROOT,lock,ids,args.verify_all)
         reused=engine.reusable_groups(ROOT,lock,None,logs,checked=checked)
+        print('Installing and verifying pinned runtimes...',flush=True)
         stage,reports=engine.install_runtimes(ROOT,resources,lock,None,reused)
         names=[*engine.TARGETS.values(),*sorted(roots)]
         if not (ROOT/'SETUP_RECEIPT.json').is_file():
@@ -135,6 +142,7 @@ def setup():
         try:save_verification(ROOT,lock,ids,reports,retained)
         except (OSError,ValueError) as exc:
             print('Recent verification metadata could not be saved; the next install will fully verify: '+str(exc),flush=True)
+        print('Checking optional platform support...',flush=True)
         from tools.optional_support import prepare as prepare_support
         prepare_support(ROOT)
         if getattr(args, 'with_blender', False):
