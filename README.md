@@ -1,8 +1,9 @@
 # RGB MoCap - Linux / AMD ROCm fork
 
+> [!IMPORTANT]
 > **Fork notice.** This repository is a fork of
 > [toyxyz/RGB MoCap](https://github.com/toyxyz/toyxyz_RGBMocap). Its focus is
-> Linux and AMD ROCm (HIP) support, with a few QoL fixes and features, but Windows support is still maintained though personally untested. See the
+> Linux and AMD ROCm (HIP) support, with a few QoL fixes and features. Windows/Nvidia support is still maintained though personally untested. See the
 > [upstream README](https://github.com/toyxyz/toyxyz_RGBMocap#readme) for the
 > full original feature list.
 
@@ -12,14 +13,18 @@
 
 | Platform | GPU | Backend / target | Notes |
 | --- | --- | --- | --- |
-| Linux (CachyOS, kernel 7.3.1) | AMD Radeon RX 9060 XT | ROCm 10.1 / HIP 7.16, `gfx1200` | Developer's primary rig |
-| Linux (CachyOS, kernel 7.3.1) | AMD Radeon 760M Graphics, ~6.7 GB VRAM | ROCm 10.1 / HIP 7.16, `gfx1102` | ExMR reconstruction ran; first install needed `RGB_MOCAP_GPU_ARCH=gfx1102` |
+| CachyOS (Wayland, kernel 7.3.1) | AMD Radeon RX 9060 XT | ROCm 10.1 / HIP 7.16, `gfx1200` | Developer's primary rig |
+| CachyOS (Wayland, kernel 7.3.1) | AMD Radeon 760M Graphics, ~6.7 GB VRAM | ROCm 10.1 / HIP 7.16, `gfx1102` | First install needed `RGB_MOCAP_GPU_ARCH=gfx1102`, extremely slow |
+| KDE Neon (Wayland, kernel 6.17.0) | AMD Radeon RX 7800 XT | ROCm 10.1 / HIP 7.16, `gfx1101` | Reported working by Trico-Everfire, [details](https://github.com/toyxyz/toyxyz_RGBMocap/issues/65#issuecomment-7080459499) |
 
-Windows and other AMD GPUs are supported but untested. If your GPU is older or needed a workaround, or you had
+Windows and other AMD/Nvidia GPUs are supported but untested.
+
+If your GPU is older or needed a workaround, or you had
 a successful run, or you're encountering any sort of issue, please
 [open an issue](https://github.com/qualk/toyxyz_RGBMocap/issues/new) with your
-OS, GPU, backend, `gfxNNNN` target and the JSON from **Help > Check System** so
-this table can be extended. Avoid opening issues in the main repository unless you know it's not relevant to the fork.
+OS, GPU, backend, `gfxNNNN` target and the JSON from **Help > Check System** so this table can be extended.
+
+Avoid opening issues in the main repository unless you know it's not relevant to the fork.
 
 ## Install
 
