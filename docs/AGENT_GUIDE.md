@@ -707,6 +707,11 @@ MAMMA currently bounds the common trim to 1800 frames/eight people; geometry
 baking must not accumulate whole mesh sequences in RAM. No new inference,
 runtime dependency, source motion or contact change is part of export.
 
+**File > Settings...** stores `ui_theme` and `ui_scale` in the installation-local
+`config/local.json`. Dark and 100% are the defaults. The app updates the
+Qt palette, fonts, widget styles, and timeline geometry when the user clicks
+**OK**. The system display scale still applies.
+
 ## Character retargeting and export
 
 - **File > Import Character...** accepts Mixamo-style FBX, VRM and PMX, and adds the character in rest pose below people. Up to eight characters per project are supported.
@@ -769,6 +774,23 @@ dialog's initial export controls, including the Blender controls in the source
 dialog. Preserve the current take selection and scope. Discard retained
 unavailable choices on reset and persist the restored preferences only when
 the dialog is accepted.
+
+`default_settings` holds the starting settings saved explicitly with **File > Save
+Settings as Default** and removed with **Reset Default Settings**. Each command
+lists the proposed values and updates local settings only after **OK**.
+`project_workspace_ui.DEFAULT_SETTINGS` maps the stored keys to the editor controls
+and display labels. Starting options include GVHMR add-ons, FlowHMR and ExMR
+options and camera rotation refinement, PromptHMR camera and interaction,
+correction mode/preset/locks, Track Face and Resource Mode. MainWindow startup
+and new single- or multi-camera inputs apply these preferences after the built-in
+resets. An explicit reset restores **Automatic** for the next clip alongside the
+other built-in values. Resource Mode stays local and is passed to workers as
+`RGB_MOCAP_COMPUTE_MODE`. Resource Safety has its own local preference.
+Trim, floor, pelvis offset, people counts and MAMMA calibration belong to the
+capture. In an existing project, restore saved result and camera view selections.
+Use local model defaults only for absent settings groups in models without a saved
+result. Track Face uses the local default when a project has no saved Track Face
+setting. PEAR live input follows its own controls.
 
 Use **Resource Mode > Automatic** by default. It keeps the fast path when the current GPU budget is sufficient and selects supported Low Memory paths per operation when needed. A supported fast operation that raises CUDA OOM is released and retried once in Low Memory. ExMR Low Memory uses CPU-first body/hand loading and converts Sapiens' existing FP16 layers before GPU transfer; ExMR body/hand batches stay 8. FlowHMR offloads SAM/VGGT blocks; MAMMA offloads VGGT camera blocks while retaining its pinned masks/landmark/fitting settings. GVHMR/add-ons retain adaptive image batches and full-context attention. The saved Automatic selection is not changed. Resource decisions and memory advice appear in the app Console and CMD. Model precision, frame count, resolution and iterations are not reduced. CPU loading/offloading can be slower and use more RAM; it is not a promise every clip will fit. Estimates select a path, never reject a job. With Resource Safety enabled, the desktop checks actual RAM and Windows allocation headroom every 0.5 seconds and stops workers when these become low. Preserve completed stages, genuine model limits and original motion. Do not rerun inference for operations that can use existing results.
 
