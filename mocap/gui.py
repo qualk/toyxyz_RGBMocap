@@ -533,7 +533,7 @@ class ModelsDialog(QDialog):
         from .flow_hamer import MODEL_KEYS
         if self.inventory_tab:
             return []
-        excluded = {'sam31_people'}
+        excluded = {'sam31_people', 'rife49'}
         if self.tool.key == 'flowhmr' and not self.window.flow_hamer.isChecked():
             excluded.update(MODEL_KEYS)
         return [model for model in self.models if model.key not in excluded
@@ -691,6 +691,7 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
     @read_only_checks
     def update_readiness(self):
         self.export_preview_action.setEnabled(self.preview_export_available())
+        self.rife_interpolation.setVisible(not self._pear_active)
         self.track_face.setVisible(not self._pear_active)
         self.face_overlay.setVisible(not self._pear_active)
         for control in (self.set_neutral_face, self.reset_neutral_face, self.neutral_face_note):
@@ -961,6 +962,8 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
             self.reset_people()
             self.motion_view.auto_fit = True
             self.video_path, self.project, self.info = path, None, None
+            self._rife_source_fps = 0
+            self.rife_interpolation.setChecked(False)
             self.setWindowTitle('RGB MoCap | Motion Workspace')
             self.flow_sampling.setCurrentIndex(self.flow_sampling.findData(0))
             self.fast_sam.setChecked(True)
@@ -998,6 +1001,7 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
         self.slider.set_media(self.info["fps"] if self.info else info["fps"])
         if self.project is None and not self._workspace_video_reference:
             self.info = info
+            self._rife_source_fps = info['fps']
             self.slider.setRange(0, max(0, info["frames"] - 1))
             self.source_offset, self.source_end = 0.0, info["duration"]
             self.slider.reset_trim()
@@ -1050,6 +1054,8 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
             self.status.setText(str(error))
             return False
         manifest = json.loads((project / "project.json").read_text(encoding="utf-8"))
+        self._rife_source_fps = float(manifest.get('source', {}).get('fps') or 0)
+        self.rife_interpolation.setChecked(bool(manifest.get('interpolation')))
         if manifest.get('pipeline',{}).get('model')=='prompthmr':
             group=(project/manifest.get('people_root','.')).resolve()
             if (group/'prompthmr_pending.json').exists():
@@ -1317,7 +1323,15 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
         if not discovery and self._single_actor and not self._single_actor['checked']:
             self.status.setText('Check Person 1 in the People list to reconstruct it.')
             return
-        if not discovery and self.input_person_jobs(stages,result):
+        interpolation = self.selected_interpolation()
+        if not discovery and self.people_state is not None:
+            manifest = json.loads((self.people_root / 'project.json').read_bytes())
+            if manifest.get('interpolation', '') != interpolation:
+                self.status.setText('Video interpolation changed. Run Find person again, then reconstruct the selected people.')
+                return
+            if self.input_person_jobs(stages, result):
+                return
+        if not self.ready_for_interpolation(interpolation):
             return
         unavailable = [model for stage in stages for model in ([] if self.model_choice.currentData()=='flowhmr' and stage=='flow_camera' and self.flow_sampling.currentData()==-1 else missing('flow_export' if self.model_choice.currentData()=='flowhmr' and stage in ('correct','export') else stage))]
         if 'sam31_people' not in stages and self.model_choice.currentData()=='flowhmr' and self.flow_hamer.isChecked():
@@ -1331,6 +1345,8 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
             return
         first, end = self.processing_range()
         prepare_args = ["--video", str(self.video_path), "--start", str(first), "--end", str(end)]
+        if interpolation:
+            prepare_args.append('--rife-interpolation')
         if self.workspace_root is not None:
             prepare_args += ['--project',str(self.workspace_root)]
         elif self.project is not None:
@@ -1520,6 +1536,14 @@ class MainWindow(PreviewExportWorkspace,PearWorkspace,GemXWorkspace,PromptHMRWor
             self.log.append('Cannot save Resource Safety: '+str(error));return
         os.environ[ENV]='1' if value else '0'
         self.log.append(message(value))
+
+    def remember_model_pick(self,index):
+        # Code changes the selector with signals blocked, so this is a user pick; skip it if select_model refused it.
+        model=self.model_choice.itemData(index)
+        if model!=self.model_choice.currentData():return
+        from .local_choices import remember_model
+        try:remember_model(model)
+        except (OSError,ValueError) as error:self.log.append('Cannot save the AI Motion Model choice: '+str(error))
 
     def start_jobs(self, jobs, refresh_characters=False):
         if self.busy:
