@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Linux counterpart of RGBMoCap.cmd.
 root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 python="$root/runtime/bin/python3.10"

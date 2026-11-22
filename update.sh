@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Linux counterpart of update.cmd. The braces make sh read the whole body before
 # Git can replace this running script; git_update.py reports the outcome.
 {

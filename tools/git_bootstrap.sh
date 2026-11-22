@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # POSIX counterpart of git_bootstrap.ps1: verified uv, private CPython, then the shared Git installer.
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)

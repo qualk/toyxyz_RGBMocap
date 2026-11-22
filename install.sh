@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Linux counterpart of install.cmd.
 cd -- "$(dirname -- "$0")" || exit 1
 status=0

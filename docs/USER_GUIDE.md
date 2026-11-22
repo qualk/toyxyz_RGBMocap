@@ -99,6 +99,13 @@ Blender retains its GPL license and bundled notices; see [Third-party notices](.
 not a minimum specification. Other GPUs, drivers and clean Windows installations
 have not yet been verified; compatibility reports are welcome.
 
+This fork also supports AMD Radeon inference through ROCm/HIP on Windows, with
+per-architecture wheels selected at setup. It is validated on an RX 9060 XT
+(gfx1200); other AMD cards may work but are not hardware-validated here. See
+[ROCm setup and supported GPUs](LINUX.md#2-amd-gpu-setup-rocm) and the
+[HIP SDK for Windows](../README.md#rocm-references) for driver and architecture
+references.
+
 On Windows 11 with Smart App Control set to **On**, see
 [Smart App Control troubleshooting](#smart-app-control-on-windows-11) before running setup.
 
@@ -107,7 +114,7 @@ On Windows 11 with Smart App Control set to **On**, see
    `C:\RGBMoCap`. Adjust the path if you need a different folder.
 
    ```cmd
-   git clone https://github.com/toyxyz/toyxyz_RGBMocap.git C:\RGBMoCap
+   git clone https://github.com/qualk/toyxyz_RGBMocap.git C:\RGBMoCap
    cd /d C:\RGBMoCap
    ```
 

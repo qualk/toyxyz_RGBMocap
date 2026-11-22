@@ -424,11 +424,11 @@ See the [installation steps and controls](USER_GUIDE.md#stream-bones-to-blender)
 
 RGB MoCap Connect 0.5.0 supports MetaHuman and UE5 mannequin targets. The
 [Unreal installation and controls guide](UNREAL_LIVE_LINK.md) covers both
-connection types. The main README links to the 0.5.0 Win64 receiver ZIP.
-The inline
-[MetaHuman streaming demo](../README.md#unreal-engine-metahuman-live-streaming)
-lives under Sample videos. Use the [plugin guide](../unreal_plugin/RGBMoCapMetaHuman/README.md)
-for receiver installation and connection. The Unreal guide also covers the
+connection types. The
+[upstream README](https://github.com/toyxyz/toyxyz_RGBMocap#readme) links the
+0.5.0 Win64 receiver ZIP and the MetaHuman streaming demo. Use the
+[plugin guide](../unreal_plugin/RGBMoCapMetaHuman/README.md) for receiver
+installation and connection. The Unreal guide also covers the
 manual reference FBX and IK Retargeter workflow.
 
 The selected editor target type applies to the next connection. Each

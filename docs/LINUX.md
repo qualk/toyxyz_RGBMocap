@@ -1,152 +1,202 @@
-# Linux (experimental)
+# Linux
 
-The Linux installer uses the same pinned runtime profiles as Windows with
-separate hash-checked Linux wheels. Both platforms auto-detect the GPU: NVIDIA
-uses the validated CUDA PyTorch, AMD Radeon uses ROCm (HIP) PyTorch. The GPU
-wheel set is selected at setup time for the detected platform and gfx
-architecture, so no particular card is baked into the runtime lock. Both
-platforms keep their own Python runtimes, models, projects and caches. The
-Linux paths cover single-video ExMR, FlowHMR and GVHMR, native motion
+This fork runs single-video ExMR, FlowHMR and GVHMR on Linux, including motion
 correction, source export and optional Track Face. The optional PEAR, MAMMA,
-PromptHMR, GEM-X, SAM 3.1 and Unreal Live Link sender setups use Windows tooling.
+PromptHMR, GEM-X, SAM 3.1 and Unreal Live Link setups still use Windows tooling.
 
-## Requirements
+Both platforms share the same pinned runtime profiles. Setup detects an NVIDIA
+(CUDA) or AMD (ROCm/HIP) GPU and downloads matching hash-checked wheels, so
+there is no system PyTorch to install. AMD users should read the ROCm section
+before the first install.
 
-Use x86-64 Linux with a CUDA-capable NVIDIA driver or an AMD Radeon GPU with a
-working ROCm/HIP userland (verified on a Radeon RX 9060 XT, `gfx1200`, ROCm 10.1
-/ HIP 7.16), OpenGL 4.3 or newer, FFmpeg and FFprobe, and a C++17 compiler with
-CMake 3.24 or newer. The installer fetches the exact pinned PyTorch, Triton,
-device-kernel and ROCm SDK wheels for the detected GPU from AMD's or PyTorch's
-verified wheel index and verifies their SHA-256; it does not use the system
-Python's PyTorch. **Help > Check System** reports the backend, GPU, HIP/CUDA
-version, device NMS and an actual device matmul result. On
-Ubuntu 24.04, including WSL 2 with WSLg, install the system libraries first:
+## 1. Install system packages
+
+You need x86-64 Linux, OpenGL 4.3 or newer, FFmpeg/FFprobe and a C++17 compiler
+with CMake 3.24 or newer. The commands below install the usual Qt, OpenGL and
+build dependencies. `portaudio` is only needed for Track Face. Package names
+change between releases, so drop anything your distro cannot find.
+
+### Arch Linux / CachyOS / EndeavourOS
+
+```sh
+sudo pacman -Syu --needed git curl ca-certificates base-devel cmake ffmpeg \
+  mesa-utils glu libglvnd libxkbcommon-x11 xcb-util-cursor xcb-util-wm \
+  xcb-util-image xcb-util-keysyms xcb-util-renderutil libxcb portaudio
+```
+
+`--needed` skips packages you already have, so rerunning the command is safe.
+`libxcb` already contains the RandR, shape, Xfixes and Xinerama libraries.
+
+### Ubuntu / Debian / Linux Mint
 
 ```sh
 sudo apt update
 sudo apt install git curl ca-certificates build-essential cmake ffmpeg mesa-utils \
   libgl1 libegl1 libglu1-mesa libxkbcommon-x11-0 libxcb-cursor0 \
   libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 \
-  libxcb-randr0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0
+  libxcb-randr0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libportaudio2
 ```
 
-Track Face additionally uses PortAudio (`libportaudio2` on Ubuntu). For
-Blender bundles, compatibility FBX and character retargeting, install the
-pinned Blender 4.5.0 build with `./install.sh --with-blender`. You can also use
-Blender 4.5 LTS from `PATH` or set `RGBMOCAP_BLENDER=/path/to/blender` to override it.
-Install `libsm6` and `libice6` on Ubuntu 24.04 for the standalone Blender build.
-The optional installer verifies the official archive and stages the build
-before publishing it under `runtime_character/blender-linux`. If a later release
-changes the pin, keep the current directory as a backup before requesting the
-new managed Blender.
+Ubuntu 24.04 and Linux Mint 22 are the distributions closest to the upstream
+tested setup.
 
-On WSL 2, use a checkout on the Linux filesystem, for example in your home
-directory. The validated WSL setup uses the NVIDIA Windows host driver, which
-WSL exposes to Ubuntu. ROCm under WSL is not validated here; use native Linux
-for AMD GPUs.
-The launcher defaults to Qt's XCB backend when X11 or XWayland provides
-`DISPLAY`. An explicit `QT_QPA_PLATFORM` takes precedence. If the Qt viewport
-uses software rendering on an NVIDIA WSLg system, check
-`glxinfo -B` and try the following per-launch settings:
+### Fedora
 
 ```sh
-QT_QPA_PLATFORM=xcb GALLIUM_DRIVER=d3d12 MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA ./RGBMoCap.sh
+sudo dnf install git curl ca-certificates gcc gcc-c++ make cmake ffmpeg-free \
+  glx-utils mesa-libGL mesa-libEGL mesa-libGLU libxkbcommon-x11 xcb-util-cursor \
+  xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil libxcb portaudio
 ```
 
-## Test the AppImage on Linux Mint
+Fedora ships `ffmpeg-free` in its normal repositories; enable RPM Fusion if you
+want the full `ffmpeg` package instead.
 
-Download the [x86-64 AppImage and its SHA-256 checksum][appimage-release].
-This published experimental build was tested with CUDA on Ubuntu 24.04 under
-WSL 2 and predates the AMD ROCm runtime changes in this checkout; for an AMD
-GPU, install from source as described below. Native Linux Mint testing is
-welcome. Install the host dependencies listed above and run the AppImage from a
-terminal to see setup progress.
+### openSUSE
 
 ```sh
-sha256sum -c RGBMoCap-Linux-73bdd37b-x86_64.AppImage.sha256
-chmod +x RGBMoCap-Linux-73bdd37b-x86_64.AppImage
-./RGBMoCap-Linux-73bdd37b-x86_64.AppImage
+sudo zypper install git curl ca-certificates gcc gcc-c++ make cmake ffmpeg \
+  Mesa-libGL1 Mesa-libEGL1 Mesa-libGLU1 libxkbcommon-x11-0 xcb-util-cursor \
+  xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil libxcb1 portaudio
 ```
 
-The AppImage is about 21 MiB. On first launch it installs the pinned Python
-runtimes and builds native motion correction. Allow 32.3 GiB of free space for
-setup and about 8.1 GiB of runtime downloads. The WSL test installation occupied
-24.3 GiB including the installer cache. Use Model Manager to obtain the models
-for your pipeline, which need additional storage.
+If `ffmpeg` is missing from the default repositories, enable the Packman
+repository. `glxinfo` comes from `mesa-utils` on Arch and Debian, `glx-utils` on Fedora and
+`Mesa-demo-utils` on openSUSE. It is only useful for display troubleshooting.
 
-By default the AppImage keeps its installation, projects, and setup log under
-`~/.local/share/rgbmocap/appimage/<source-revision>/`. It uses
-`$XDG_DATA_HOME/rgbmocap/appimage/<source-revision>/` when an absolute
-`XDG_DATA_HOME` is set. Later launches of the same build reuse its installed
-runtimes. The setup log is `appimage-setup.log` inside that folder.
+### Blender (optional)
 
-If FUSE cannot mount the AppImage, run it with `--appimage-extract-and-run`.
-For runtime repair without opening the app, use `--setup-only --verify-all`.
-For the optional Blender installation, use `--setup-only --with-blender`.
+Blender project export, compatibility FBX and character retargeting need
+Blender 4.5 LTS. `./install.sh --with-blender` downloads and verifies the pinned
+build. You can also use Blender from `PATH` or set
+`RGBMOCAP_BLENDER=/path/to/blender`. On Ubuntu 24.04 also install `libsm6
+libice6`; on Arch use `libsm libice`.
 
-[appimage-release]: https://github.com/toyxyz/toyxyz_RGBMocap/releases/tag/linux-appimage-73bdd37b
+## 2. AMD GPU setup (ROCm)
 
-## Install, launch and update
+Skip this section for NVIDIA.
+
+Your kernel already provides the `amdgpu` driver and the installer downloads its
+own ROCm wheels, so the full AMD ROCm SDK is not required. You do need GPU
+device permissions and a way for setup to identify the card.
 
 ```sh
-git clone --branch linux_support --single-branch https://github.com/toyxyz/toyxyz_RGBMocap.git
-cd toyxyz_RGBMocap
+sudo usermod -aG render,video "$USER"
+```
+
+Log out and back in (or reboot) so the new groups apply, then check:
+
+```sh
+groups | grep -E 'render|video'
+rocminfo | grep -m1 -i gfx
+```
+
+If `rocminfo` is missing, install it with `sudo pacman -S --needed rocminfo
+pciutils` on Arch/CachyOS or `sudo apt install pciutils` on Ubuntu/Debian
+(`rocminfo` comes from AMD's ROCm repository if your distro does not package
+it). Setup falls back to `lspci` and `/sys/class/drm`, but `rocminfo` gives the
+most reliable architecture name.
+
+### If the GPU is not detected
+
+Setup prints the detected backend and `gfx` target. If the card is unknown, or
+the download reports no matching wheel build, set them explicitly:
+
+```sh
+export RGB_MOCAP_GPU_BACKEND=rocm
+export RGB_MOCAP_GPU_ARCH=gfxNNNN
 ./install.sh
-./RGBMoCap.sh
-./update.sh
 ```
 
-Use Model Manager to check or download models for the selected pipeline.
-`update.sh` fast-forwards a clean local `linux_support` branch tracking its
-remote counterpart and verifies the installed runtimes. To upgrade from an older
-Linux build whose updater still asks for `main`, run `git pull --ff-only` on
-`linux_support` and then `./install.sh` once. Use `./install.sh --verify-all`
-for a full runtime check. Installation and runtime repair preserve models and
-projects.
+The variables persist for later runs in the same shell and
+`RGB_MOCAP_GPU_ARCH` always overrides detection. Use the target from the table
+below. Integrated Radeon cards (760M/780M) are listed as `gfx1103`, but AMD does
+not always publish wheels for every target; the 760M test for this fork used
+`gfx1102`. Try the nearest supported target if the exact one fails.
 
-The installer verifies the pinned uv executable, installs private Python 3.10
-and 3.12 under `.setup/python/`, and compiles the native motion correction
-module. Linux runtime paths use the POSIX prefix layout, defined alongside
-Windows paths in `mocap/runtime_registry.py`.
+## 3. Install, launch and update
 
-On a filesystem with limited metadata space, wheel extraction can fail even
-when byte capacity remains. To place the installer's scratch files elsewhere,
-create an absolute directory and set `RGB_MOCAP_SETUP_TEMP`:
+```sh
+git clone https://github.com/qualk/toyxyz_RGBMocap.git
+cd toyxyz_RGBMocap
+./install.sh        # first setup, downloads several GB
+./RGBMoCap.sh       # start the app
+./update.sh         # later: update source and verify runtimes
+```
+
+Keep the terminal open during setup. It prints what it is doing, retries failed
+downloads when rerun, and finishes with a `SETUP_RECEIPT.json` file at the
+repository root. Do not start the app from another terminal while setup is
+running.
+
+| Command | What it does |
+| --- | --- |
+| `./install.sh --verify-all` | Recheck every installed runtime file and import |
+| `./install.sh --with-blender` | Also install the pinned Blender 4.5 |
+
+After setup, use **Model Manager** in the app to download or point at model
+files. Models are not bundled and some require registration.
+
+If your filesystem runs out of metadata space, put setup scratch files on
+another disk:
 
 ```sh
 mkdir -p /tmp/rgbmocap-setup
 RGB_MOCAP_SETUP_TEMP=/tmp/rgbmocap-setup ./install.sh
 ```
 
-Review both platform locks after changing the runtime registry or package
-pins. `tools/linux_lock.py` derives the Linux runtime lock from the Windows CUDA
-pins. When setup detects an AMD GPU, `installer/gpu_setup.py` replaces those GPU
-entries with the exact ROCm wheels for the detected platform, Python version and
-gfx architecture, including the per-architecture TorchVision NMS kernel package
-and ROCm SDK device libraries. Detection uses `rocminfo`/`lspci` on Linux and
-the GPU name on Windows; `installer/gpu-arches.json` maps card names to gfx
-architectures. Override with `RGB_MOCAP_GPU_BACKEND=cuda|rocm` and
-`RGB_MOCAP_GPU_ARCH=gfxNNNN` if detection cannot identify a card. All wheels
-are hashed before installation; the sdist-only `rocm_sdk` shim is rebuilt from
-`installer/runtime_sources/`.
+Setup keeps its own files under `.setup/` and private runtimes under
+`runtime*/`; models, projects and caches stay wherever you save them.
+
+## Wayland
+
+The launcher uses Qt's XCB backend through XWayland when `DISPLAY` is set, which
+avoids Qt OpenGL failures on some Wayland desktops. An explicit
+`QT_QPA_PLATFORM` always wins:
+
+```sh
+QT_QPA_PLATFORM=wayland ./RGBMoCap.sh
+```
+
+Native Wayland needs your distro's Qt Wayland plugin (`qt6-wayland` on Arch).
+If the viewport is black or software-rendered, run `glxinfo -B` and check that
+it reports your GPU instead of `llvmpipe`.
+
+## WSL 2
+
+Use a checkout on the Linux filesystem (for example `~/toyxyz_RGBMocap`), not
+under `/mnt/c`, and keep the NVIDIA Windows driver installed; WSL exposes it to
+Ubuntu. AMD ROCm under WSL is not supported here, so use native Linux for AMD
+cards.
+
+If Qt falls back to software rendering under WSLg:
+
+```sh
+QT_QPA_PLATFORM=xcb GALLIUM_DRIVER=d3d12 MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA ./RGBMoCap.sh
+```
 
 ## Supported AMD architectures
 
-The wheel index is queried at setup, so any architecture AMD publishes matching
-`amd-torch-device-*`, `amd-torchvision-device-*` and `rocm-sdk-device-*`
-artifacts for can be selected. `installer/gpu-arches.json` currently maps the
-RDNA3/RDNA4 consumer names below; add a line for a new card rather than editing
-code:
+Setup queries AMD's wheel index for the detected platform and `gfx` target, so a
+card usually works as soon as AMD publishes matching wheels.
+`installer/gpu-arches.json` maps marketing names from `rocminfo` or `lspci` to
+targets; add an entry there for a new card instead of changing code.
 
-| Architecture | Example cards |
+| `gfx` target | Cards |
 | --- | --- |
-| `gfx1200` | Radeon RX 9060 XT / 9060 / 9050 |
-| `gfx1201` | Radeon RX 9070 XT / 9070 / 9070 GRE |
-| `gfx1100` | Radeon RX 7900 XTX / XT / GRE |
-| `gfx1101` | Radeon RX 7800 XT / 7700 XT |
-| `gfx1102` | Radeon RX 7600 / 7600 XT |
-| `gfx1150` / `gfx1151` | Ryzen AI 300 / AI Max integrated Radeon |
+| `gfx1200` | RX 9060 XT / 9060 / 9050, Radeon AI PRO R9600 |
+| `gfx1201` | RX 9070 XT / 9070, Radeon AI PRO R9700 |
+| `gfx1100` | RX 7900 XTX / XT / GRE, Radeon PRO W7900 |
+| `gfx1101` | RX 7800 XT / 7700 XT |
+| `gfx1102` | RX 7600 / 7500, Radeon PRO W7700 |
+| `gfx1103` | Radeon 780M / 760M / 740M (integrated) |
+| `gfx1150` | Radeon 880M / 890M (Ryzen AI 9) |
+| `gfx1151` | Radeon 8060S / 8050S (Ryzen AI Max) |
+| `gfx1030` | RX 6800 / 6800 XT / 6900 XT |
+| `gfx1031` | RX 6700 / 6750 XT |
+| `gfx1032` | RX 6600 / 6650 XT |
 
-Setup prints the detected backend and architecture and stores them in
-`.setup/gpu-backend.json`; later installs reuse that selection unless an
-environment override is given.
+Only `gfx1200` is hardware-validated here. Confirm your backend, GPU, HIP
+version and device test in **Help > Check System** after setup. For AMD driver
+and device-target references, see the [README ROCm links](../README.md#rocm-references).
+Older cards can work with workarounds but are not officially supported; open an
+issue if you need help.

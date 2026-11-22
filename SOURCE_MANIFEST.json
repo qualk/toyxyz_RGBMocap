@@ -16,8 +16,8 @@
     },
     {
       "path": "AGENTS.md",
-      "bytes": 3264,
-      "sha256": "738b3c8fbdc9ae4385b304c590dac9d2e6f78b3555893e780936b76740adffef"
+      "bytes": 3247,
+      "sha256": "c4be1d197f8a0fdbe4cd8b0127e536118acc4937fa08291a06663d1574f745c5"
     },
     {
       "path": "LICENSE",
@@ -26,8 +26,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 18759,
-      "sha256": "d6e6bfc9c54c969040a1f7c3d545e21d14ac16570f45da76198f9736289efefa"
+      "bytes": 3150,
+      "sha256": "c4edaef7df6aba42e56099cf793f0eae33ef879705af9f0ef1d2552fad70cab8"
     },
     {
       "path": "RGBMoCap.cmd",
@@ -36,8 +36,8 @@
     },
     {
       "path": "RGBMoCap.sh",
-      "bytes": 639,
-      "sha256": "b4552d1a6ccd585ad6653a6ff69b3e567c00187ced75c1fca07770aa2ec2e077"
+      "bytes": 647,
+      "sha256": "f6ca6ee3e9c894d6c15b5e9da7871760b6d6c4780affbb04cb1272e60b9ff40a"
     },
     {
       "path": "Setup_GEMX.cmd",
@@ -161,8 +161,8 @@
     },
     {
       "path": "docs/AGENT_GUIDE.md",
-      "bytes": 105063,
-      "sha256": "9f11dd3372d77b4b8aae430ab87ac020d70e8c696bd70d69d1180bd1fcfcc1c0"
+      "bytes": 105031,
+      "sha256": "4a4f0e24091665e17a8a17a027e0b958d3f2492aa237b9aa88336e5729e50d73"
     },
     {
       "path": "docs/BUILD.md",
@@ -176,8 +176,8 @@
     },
     {
       "path": "docs/LINUX.md",
-      "bytes": 7571,
-      "sha256": "b2882de5336e2c8235c9bd8817c1742c1dc0238af58e243b250ec7e490129542"
+      "bytes": 7650,
+      "sha256": "7944d4da67a2258bb79005ab2caba711c604f4ecfabab0d0ae816f2f33c91d80"
     },
     {
       "path": "docs/MAMMA.md",
@@ -201,8 +201,8 @@
     },
     {
       "path": "docs/USER_GUIDE.md",
-      "bytes": 96417,
-      "sha256": "6527adebb7817b109b7ae2c81a8b4913ff47373dc6d66d6f3c6fe307b0af526d"
+      "bytes": 96819,
+      "sha256": "2c524edfd05f3370328e398263ee97399f70c3e4afe8ee43f3094ec14e656366"
     },
     {
       "path": "docs/VALIDATION.md",
@@ -321,8 +321,8 @@
     },
     {
       "path": "install.sh",
-      "bytes": 254,
-      "sha256": "0f3aada50303f3af339a09f04a5a4a29f8c3bafabe2b710e183a462d1b4ff408"
+      "bytes": 262,
+      "sha256": "4f356accea4e9bfeca95f50bd57bf24cec46204d2ebd186ab6757c26e436ba04"
     },
     {
       "path": "installer/FolderPicker.cs",
@@ -13466,8 +13466,8 @@
     },
     {
       "path": "tools/git_bootstrap.sh",
-      "bytes": 1931,
-      "sha256": "a6a2725c9c9233ed865ffd0e9edf49d58746819bd6c4a5d309e9a67fba21138c"
+      "bytes": 1939,
+      "sha256": "600ed34025df2f23827f333d9b2f7ad4e30c31b23eda70e12decdfbbea24a316"
     },
     {
       "path": "tools/git_managed_install.py",
@@ -13706,8 +13706,8 @@
     },
     {
       "path": "update.sh",
-      "bytes": 521,
-      "sha256": "6c75109f5e4a8100c7cd49c74f5be62e24f862114f250c1c8545e8c297b4b57d"
+      "bytes": 529,
+      "sha256": "32f2ca6b15d9d5cad87aaa8f8d6771f345a6e8efd252b517aa0fc2deaaa5df2c"
     },
     {
       "path": "worker_boot.py",
